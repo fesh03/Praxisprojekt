@@ -1,0 +1,229 @@
+================================================================================
+                    FORENSISCHE NETFLOW-ANALYSE - SICHERHEITSBERICHT
+================================================================================
+
+Bericht-ID:         9556170
+Erstellungsdatum:   25. Januar 2026
+Analyst:            Automatisierte Forensische Analyse
+--------------------------------------------------------------------------------
+
+[KLASSIFIZIERUNG: BESTÄTIGT]
+
+Der analysierte NetFlow-Eintrag wird als BÖSARTIGER NETZWERKVERKEHR klassifiziert.
+Die Aktivität zeigt eindeutige Merkmale von Bot-Kommunikation mit einem 
+Command & Control (C&C) Server.
+
+================================================================================
+                              BEWEISFÜHRUNG
+================================================================================
+
+1. IP-ADRESSEN-ANALYSE
+----------------------
+
+   Quell-IP (172.31.69.29):
+   - Typ: Private/Interne IP-Adresse (RFC 1918)
+   - Bedrohungsstatus: Als "Bot" in Bedrohungsdatenbank klassifiziert
+   - Bewertung: System im internen Netzwerk zeigt Kompromittierungsmerkmale
+
+   Ziel-IP (18.219.211.138):
+   - Land: Vereinigte Staaten
+   - Region: Ohio
+   - Stadt: Dublin
+   - ISP: Amazon.com, Inc. (AS16509)
+   - Bedrohungsstatus: Als "Bot" in Bedrohungsdatenbank klassifiziert
+   - Bewertung: AWS-gehostete Infrastruktur mit bekannter Bot-Assoziation
+
+2. HISTORISCHE VERKEHRSANALYSE
+------------------------------
+
+   - Gefundene historische Verbindungen: 14.779 Flows
+   - Alle analysierten Stichproben zeigen identische Muster:
+     * Zielport: 8080 (HTTP-Proxy/Alternative HTTP)
+     * Protokoll: TCP (ID: 6)
+     * L7-Protokoll: 131.7 (HTTP-basiert)
+     * Konstante Byte-Größen: IN_BYTES=538, OUT_BYTES=341
+     * Identische Paketanzahl: IN_PKTS=5, OUT_PKTS=5
+     * FLOW_DURATION_MILLISECONDS: 0 (Burst-Kommunikation)
+   
+   - Beobachtete Quellports variieren (50241, 64607, 62792, 58748)
+   - Dies deutet auf wiederholte, automatisierte Verbindungsversuche hin
+
+3. PROTOKOLL-ANALYSE
+--------------------
+
+   Transport-Protokoll: TCP (Transmission Control Protocol)
+   Anwendungsprotokoll: HTTP-basiert (L7_PROTO: 131.7)
+   Zielport: 8080 (häufig für C&C-Kommunikation verwendet)
+
+   TCP-Flags-Analyse (Wert: 219 = 11011011 binär):
+   - FIN, SYN, RST, PSH, ACK, URG Flags gesetzt
+   - Ungewöhnliche Flag-Kombination deutet auf manipulierten Verkehr hin
+
+4. VERHALTENSMERKMALE
+---------------------
+
+   a) Regelmäßigkeit:
+      - Über 14.779 nahezu identische Flows dokumentiert
+      - Konsistente Byte-Größen über alle Verbindungen
+      - Typisches Beacon-Verhalten von Bot-Malware
+
+   b) Kommunikationsmuster:
+      - Kleine, regelmäßige Datenmengen (538 Bytes ein, 341 Bytes aus)
+      - Null-Millisekunden Flow-Dauer (schnelle Burst-Kommunikation)
+      - Hoher Durchsatz trotz geringer Datenmenge:
+        * SRC_TO_DST_AVG_THROUGHPUT: 4.304.000 bps
+        * DST_TO_SRC_AVG_THROUGHPUT: 2.728.000 bps
+
+   c) Paketgrößenverteilung:
+      - 8 Pakete ≤128 Bytes (Kontrollnachrichten)
+      - 1 Paket 128-256 Bytes
+      - 1 Paket 256-512 Bytes
+      - Keine größeren Pakete (typisch für C&C, nicht für regulären Web-Traffic)
+
+   d) TTL-Analyse:
+      - MIN_TTL = MAX_TTL = 128 (keine TTL-Varianz)
+      - Deutet auf direkte Verbindung oder konsistentes Routing hin
+
+================================================================================
+                         KATEGORISIERUNG DER BEDROHUNG
+================================================================================
+
+Bedrohungstyp:        Botnet Command & Control (C&C) Kommunikation
+Bedrohungskategorie:  Botnet/Malware
+Schweregrad:          HOCH
+
+Übereinstimmende Indikatoren mit botnet_c_n_c Signatur:
+✓ Regelmäßige kleine Flows zu einer C&C-IP
+✓ Niedriger IN_BYTES und OUT_BYTES (538/341 Bytes)
+✓ Spezifischer L4_DST_PORT für C&C (8080)
+✓ Periodische Patterns (14.779 ähnliche Flows)
+✓ L7_PROTO HTTP für C&C-Kommunikation
+✓ Quell- und Ziel-IP beide als "Bot" klassifiziert
+
+Zusätzliche Beobachtung:
+Das Kommunikationsmuster zeigt auch Ähnlichkeiten mit HTTP-basierten 
+DoS-Tools (HULK, GoldenEye, LOIC), jedoch deutet die bidirektionale 
+Kommunikation und das Beacon-Muster stärker auf C&C-Aktivität hin.
+
+================================================================================
+                            RISIKOBEWERTUNG
+================================================================================
+
+Risikostufe:          KRITISCH
+
+Begründung:
+1. Das interne System (172.31.69.29) ist wahrscheinlich kompromittiert
+2. Aktive Kommunikation mit bekanntem C&C-Server bestätigt
+3. Über 14.000 dokumentierte Verbindungsversuche zeigen persistente Infektion
+4. Potenzial für Datenexfiltration, laterale Bewegung oder DDoS-Teilnahme
+5. AWS-gehostete C&C-Infrastruktur ermöglicht Angreifern hohe Verfügbarkeit
+
+================================================================================
+                        EMPFOHLENE GEGENMASSNAHMEN
+================================================================================
+
+SOFORTMASSNAHMEN (Priorität: KRITISCH):
+
+1. Isolation des kompromittierten Systems
+   - System 172.31.69.29 sofort vom Netzwerk isolieren
+   - Nicht herunterfahren (Beweissicherung)
+
+2. Netzwerk-Blockierung
+   - Ziel-IP 18.219.211.138 auf Firewall blockieren
+   - Port 8080 ausgehend für nicht-autorisierte Systeme sperren
+
+3. Forensische Sicherung
+   - Speicherabbild des kompromittierten Systems erstellen
+   - Festplattenimage für forensische Analyse sichern
+
+MITTELFRISTIGE MASSNAHMEN:
+
+4. Netzwerk-Sweep
+   - Alle Systeme auf Kommunikation mit 18.219.211.138 prüfen
+   - Weitere Bot-Infektionen im Netzwerk identifizieren
+
+5. Malware-Analyse
+   - Identifizierung der Bot-Familie auf dem kompromittierten System
+   - IOCs (Indicators of Compromise) extrahieren
+
+6. Schwachstellenanalyse
+   - Initialen Infektionsvektor ermitteln
+   - Betroffene Schwachstellen patchen
+
+LANGFRISTIGE MASSNAHMEN:
+
+7. Netzwerksegmentierung überprüfen und verbessern
+8. Egress-Filtering implementieren/verstärken
+9. SIEM-Regeln für C&C-Beacon-Erkennung erstellen
+10. Incident Response Plan aktualisieren
+
+================================================================================
+                                FAZIT
+================================================================================
+
+Die forensische Analyse bestätigt eindeutig die NIDS-Klassifizierung als 
+bösartigen Netzwerkverkehr. Der NetFlow-Eintrag 9556170 zeigt typische 
+Merkmale einer Botnet Command & Control Kommunikation:
+
+- Beide beteiligten IP-Adressen sind in Bedrohungsdatenbanken als "Bot" 
+  klassifiziert
+- Das Kommunikationsmuster (regelmäßige, kleine, identische Flows) entspricht 
+  dem typischen Beacon-Verhalten von Bot-Malware
+- Die historische Analyse zeigt über 14.000 ähnliche Verbindungen, was auf 
+  eine persistente Infektion hinweist
+- Die Nutzung von Port 8080 mit HTTP-Protokoll ist ein bekannter C&C-Kanal
+
+EMPFEHLUNG: Sofortige Incident-Response-Aktivierung erforderlich.
+
+================================================================================
+                    ANALYSIERTE ROHDATEN (ORIGINAL)
+================================================================================
+
+netflow_id: 9556170
+IPV4_SRC_ADDR: 172.31.69.29
+L4_SRC_PORT: 50241
+IPV4_DST_ADDR: 18.219.211.138
+L4_DST_PORT: 8080
+PROTOCOL: 6
+L7_PROTO: 131.7
+IN_BYTES: 538
+IN_PKTS: 5
+OUT_BYTES: 341
+OUT_PKTS: 5
+TCP_FLAGS: 219
+CLIENT_TCP_FLAGS: 219
+SERVER_TCP_FLAGS: 27
+FLOW_DURATION_MILLISECONDS: 0
+DURATION_IN: 0
+DURATION_OUT: 0
+MIN_TTL: 128
+MAX_TTL: 128
+LONGEST_FLOW_PKT: 366
+SHORTEST_FLOW_PKT: 40
+MIN_IP_PKT_LEN: 40
+MAX_IP_PKT_LEN: 366
+SRC_TO_DST_SECOND_BYTES: 538.0
+DST_TO_SRC_SECOND_BYTES: 341.0
+RETRANSMITTED_IN_BYTES: 0
+RETRANSMITTED_IN_PKTS: 0
+RETRANSMITTED_OUT_BYTES: 0
+RETRANSMITTED_OUT_PKTS: 0
+SRC_TO_DST_AVG_THROUGHPUT: 4304000
+DST_TO_SRC_AVG_THROUGHPUT: 2728000
+NUM_PKTS_UP_TO_128_BYTES: 8
+NUM_PKTS_128_TO_256_BYTES: 1
+NUM_PKTS_256_TO_512_BYTES: 1
+NUM_PKTS_512_TO_1024_BYTES: 0
+NUM_PKTS_1024_TO_1514_BYTES: 0
+TCP_WIN_MAX_IN: 8192
+TCP_WIN_MAX_OUT: 26883
+ICMP_TYPE: 0
+ICMP_IPV4_TYPE: 0
+DNS_QUERY_ID: 0
+DNS_QUERY_TYPE: 0
+DNS_TTL_ANSWER: 0
+FTP_COMMAND_RET_CODE: 0
+
+================================================================================
+                            ENDE DES BERICHTS
+================================================================================

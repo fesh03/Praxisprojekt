@@ -1,0 +1,216 @@
+================================================================================
+                    FORENSISCHE NETFLOW-ANALYSE - SICHERHEITSBERICHT
+================================================================================
+NetFlow-ID:         10958405
+Analysedatum:       25. Januar 2026
+Analyst:            Automatisierte NIDS-Validierung
+================================================================================
+
+[KLASSIFIZIERUNG: BESTÄTIGT]
+
+Der analysierte Netzwerkfluss wird als BÖSARTIG eingestuft. Die Untersuchung
+bestätigt die ursprüngliche NIDS-Klassifizierung mit hoher Konfidenz.
+
+================================================================================
+                              BEWEISFÜHRUNG
+================================================================================
+
+1. GEOLOKALISIERUNG DER ENDPUNKTE
+--------------------------------------------------------------------------------
+   Quell-IP (172.31.69.29):
+   - Typ: Private/Interne IP-Adresse (RFC 1918)
+   - Standort: Internes Netzwerk (172.16.0.0/12 Bereich)
+
+   Ziel-IP (18.219.211.138):
+   - Land: Vereinigte Staaten
+   - Region: Ohio
+   - Stadt: Dublin
+   - ISP: Amazon.com, Inc.
+   - AS: AS16509 Amazon.com, Inc.
+   - Koordinaten: 40.0992, -83.1141
+
+2. BEDROHUNGSINFORMATIONEN (THREAT INTELLIGENCE)
+--------------------------------------------------------------------------------
+   Quell-IP (172.31.69.29):
+   → Klassifizierung: BOT
+   → Status: Als kompromittiertes System in Bedrohungsdatenbanken gelistet
+
+   Ziel-IP (18.219.211.138):
+   → Klassifizierung: BOT
+   → Status: Bekannter Command & Control (C&C) Server
+
+3. HISTORISCHE KOMMUNIKATIONSANALYSE
+--------------------------------------------------------------------------------
+   Gefundene Netflow-Einträge zwischen diesen IPs: 14.779
+
+   Diese außergewöhnlich hohe Anzahl von Flows zwischen einer internen IP
+   und einem bekannten C&C-Server ist ein starkes Indiz für eine aktive
+   Botnet-Infektion.
+
+   Beobachtete Muster in historischen Flows:
+   - Konsistente Paketgrößen (IN_BYTES: 538, OUT_BYTES: 341)
+   - Identische TCP-Flag-Muster (TCP_FLAGS: 219)
+   - Gleiche Ziel-Port-Nutzung (L4_DST_PORT: 8080)
+   - Variierende Quell-Ports (typisch für automatisierte Verbindungen)
+   - Flow-Dauer von 0ms (schnelle, kurze Kommunikation)
+
+4. PROTOKOLLANALYSE
+--------------------------------------------------------------------------------
+   Layer 4 Protokoll: TCP (Transmission Control Protocol) - ID: 6
+   Layer 7 Protokoll: 131.7 (HTTP-basierte Kommunikation über Port 8080)
+   
+   TCP-Flag-Analyse:
+   - TCP_FLAGS: 219 (dezimal) = 11011011 (binär)
+   - Gesetzte Flags: FIN, SYN, RST, PSH, ACK, URG
+   - CLIENT_TCP_FLAGS: 219 - Vollständiger Handshake + Datentransfer
+   - SERVER_TCP_FLAGS: 27 = SYN, ACK, FIN, PSH
+
+5. FLOW-CHARAKTERISTIKEN
+--------------------------------------------------------------------------------
+   - IN_BYTES: 538 (Client → Server)
+   - OUT_BYTES: 341 (Server → Client)
+   - IN_PKTS: 5
+   - OUT_PKTS: 5
+   - FLOW_DURATION: 0 ms (instantane Kommunikation)
+   - TTL: 128 (konstant, kein Hop-Varianz)
+   - Paketgrößenverteilung: 8 Pakete ≤128 Bytes, 1 Paket 128-256 Bytes,
+     1 Paket 256-512 Bytes
+   - Keine Retransmissionen (stabiler C&C-Kanal)
+
+================================================================================
+                         KATEGORISIERUNG DER BEDROHUNG
+================================================================================
+
+ANGRIFFSTYP:        Botnet Command & Control (C&C) Kommunikation
+KATEGORIE:          Botnet/Malware
+BEDROHUNGSSTUFE:    HOCH
+
+Übereinstimmende Indikatoren gemäß Signatur "botnet_c_n_c":
+
+[✓] Regelmäßige kleine Flows zu C&C IP
+    → 14.779 dokumentierte Flows mit konsistentem Muster
+
+[✓] Niedriger IN_BYTES/OUT_BYTES
+    → IN_BYTES: 538, OUT_BYTES: 341 (typische C&C-Heartbeat-Größe)
+
+[✓] Spezifische L4_DST_PORT für C&C
+    → Port 8080 (HTTP-Proxy, häufig für C&C missbraucht)
+
+[✓] Hohe Anzahl Bots zu einem DST
+    → Interne IP kommuniziert repetitiv mit bekanntem C&C-Server
+
+[✓] L7_PROTO HTTP für C&C
+    → Protokoll 131.7 bestätigt HTTP-basierte Kommunikation
+
+[✗] Hohe TTL Varianz
+    → TTL konstant bei 128 (kein Varianz-Indikator in diesem Flow)
+
+[✓] Periodische Patterns
+    → Historische Analyse zeigt wiederholte, gleichartige Flows
+
+================================================================================
+                             RISIKOBEWERTUNG
+================================================================================
+
+GESAMTRISIKO:       KRITISCH
+
+Risikofaktoren:
+1. Kompromittiertes internes System (172.31.69.29) als Teil eines Botnets
+2. Aktive Kommunikation mit bekanntem C&C-Server
+3. Über 14.000 dokumentierte Kommunikationsversuche
+4. Potenzial für Datenexfiltration, weitere Malware-Downloads oder
+   Teilnahme an DDoS-Angriffen
+5. AWS-gehosteter C&C-Server erschwert schnelle Abschaltung
+
+================================================================================
+                         EMPFOHLENE GEGENMASSNAHMEN
+================================================================================
+
+SOFORTMASSNAHMEN:
+1. Isolierung des kompromittierten Hosts (172.31.69.29) vom Netzwerk
+2. Blockierung der Ziel-IP (18.219.211.138) auf Firewall-Ebene
+3. Blockierung von Port 8080 für ausgehenden Verkehr (sofern nicht
+   geschäftskritisch)
+
+UNTERSUCHUNGSMASSNAHMEN:
+4. Forensische Analyse des kompromittierten Hosts
+5. Überprüfung auf laterale Bewegung im Netzwerk
+6. Analyse weiterer interner Systeme auf ähnliche C&C-Kommunikation
+7. Überprüfung der Netzwerk-Logs auf Zeitraum der ersten Kompromittierung
+
+LANGFRISTIGE MASSNAHMEN:
+8. Implementierung von Egress-Filtering
+9. Netzwerksegmentierung zur Eindämmung zukünftiger Infektionen
+10. Meldung der C&C-IP an AWS Abuse Team
+11. Update der Threat-Intelligence-Feeds
+
+================================================================================
+                                  FAZIT
+================================================================================
+
+Die forensische Analyse BESTÄTIGT die NIDS-Klassifizierung dieses Flows als
+bösartig. Der interne Host 172.31.69.29 ist nachweislich Teil eines Botnets
+und kommuniziert aktiv mit einem Command & Control Server, der bei Amazon
+Web Services (AWS) in Ohio, USA gehostet wird.
+
+Die Evidenz umfasst:
+- Bedrohungsintelligenz-Treffer für beide IP-Adressen (Bot-Klassifizierung)
+- 14.779 historische Kommunikationsflows mit identischem Muster
+- Übereinstimmung mit bekannten Botnet C&C-Signaturen
+- Charakteristische Flow-Eigenschaften (kleine Pakete, HTTP über 8080,
+  keine Retransmissionen, konsistente Größen)
+
+EMPFEHLUNG: Sofortige Incident-Response-Maßnahmen einleiten.
+
+================================================================================
+                     ANALYSIERTE ROHDATEN (ORIGINAL)
+================================================================================
+
+netflow_id: 10958405
+IPV4_SRC_ADDR: 172.31.69.29
+L4_SRC_PORT: 51715
+IPV4_DST_ADDR: 18.219.211.138
+L4_DST_PORT: 8080
+PROTOCOL: 6
+L7_PROTO: 131.7
+IN_BYTES: 538
+IN_PKTS: 5
+OUT_BYTES: 341
+OUT_PKTS: 5
+TCP_FLAGS: 219
+CLIENT_TCP_FLAGS: 219
+SERVER_TCP_FLAGS: 27
+FLOW_DURATION_MILLISECONDS: 0
+DURATION_IN: 0
+DURATION_OUT: 0
+MIN_TTL: 128
+MAX_TTL: 128
+LONGEST_FLOW_PKT: 366
+SHORTEST_FLOW_PKT: 40
+MIN_IP_PKT_LEN: 40
+MAX_IP_PKT_LEN: 366
+SRC_TO_DST_SECOND_BYTES: 538.0
+DST_TO_SRC_SECOND_BYTES: 341.0
+RETRANSMITTED_IN_BYTES: 0
+RETRANSMITTED_IN_PKTS: 0
+RETRANSMITTED_OUT_BYTES: 0
+RETRANSMITTED_OUT_PKTS: 0
+SRC_TO_DST_AVG_THROUGHPUT: 4304000
+DST_TO_SRC_AVG_THROUGHPUT: 2728000
+NUM_PKTS_UP_TO_128_BYTES: 8
+NUM_PKTS_128_TO_256_BYTES: 1
+NUM_PKTS_256_TO_512_BYTES: 1
+NUM_PKTS_512_TO_1024_BYTES: 0
+NUM_PKTS_1024_TO_1514_BYTES: 0
+TCP_WIN_MAX_IN: 8192
+TCP_WIN_MAX_OUT: 26883
+ICMP_TYPE: 0
+ICMP_IPV4_TYPE: 0
+DNS_QUERY_ID: 0
+DNS_QUERY_TYPE: 0
+DNS_TTL_ANSWER: 0
+FTP_COMMAND_RET_CODE: 0
+
+================================================================================
+                            ENDE DES BERICHTS
+================================================================================

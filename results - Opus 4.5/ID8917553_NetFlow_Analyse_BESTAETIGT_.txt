@@ -1,0 +1,211 @@
+================================================================================
+                    FORENSISCHE NETFLOW-ANALYSE - SICHERHEITSBERICHT
+================================================================================
+
+Berichts-ID:        8917553
+Analysedatum:       24. Januar 2026
+Analyst:            Automatisierte Forensische Analyse (KI-gestützt)
+
+================================================================================
+[KLASSIFIZIERUNG: BESTÄTIGT]
+================================================================================
+
+Der analysierte NetFlow-Eintrag wird als BÖSARTIG eingestuft.
+Bedrohungstyp: FTP-BRUTE-FORCE-ANGRIFF
+
+================================================================================
+                              BEWEISFÜHRUNG
+================================================================================
+
+1. NETZWERKVERKEHR-CHARAKTERISTIKEN
+-----------------------------------
+Die Analyse des NetFlow-Eintrags offenbart mehrere kritische Indikatoren:
+
+   • Zielport 21 (FTP): Der Datenverkehr ist explizit auf den FTP-Dienst 
+     (L4_DST_PORT: 21) gerichtet, was ein primärer Indikator für FTP-basierte 
+     Angriffe darstellt.
+
+   • Protokoll: TCP (PROTOCOL: 6) mit L7_PROTO: 1.178, was auf 
+     FTP-Anwendungsschicht-Protokoll hinweist.
+
+   • Paketverteilung: Alle 14 Pakete (IN_PKTS: 7, OUT_PKTS: 7) liegen unter 
+     128 Bytes (NUM_PKTS_UP_TO_128_BYTES: 14). Dies entspricht dem typischen 
+     Muster von Authentifizierungsversuchen mit kurzen Kommandos.
+
+   • TCP-Flags: TCP_FLAGS: 22 (SYN, RST, ACK), CLIENT_TCP_FLAGS: 2 (SYN), 
+     SERVER_TCP_FLAGS: 20 (RST, ACK) deuten auf fehlgeschlagene 
+     Verbindungsversuche hin.
+
+2. BEDROHUNGSINTELLIGENZ
+------------------------
+   • Quell-IP (13.59.126.31):
+     - Standort: Dublin, Ohio, USA (Amazon AWS Infrastructure)
+     - ISP: Amazon.com, Inc. (AS16509)
+     - Bekannte Bedrohungen: DoS attacks-SlowHTTPTest
+     
+   • Ziel-IP (172.31.69.25):
+     - Private/Interne IP-Adresse (RFC 1918)
+     - Historische Angriffe auf dieses Ziel: DoS attacks-Hulk, DDoS attacks-LOIC-HTTP, 
+       SSH-Bruteforce, DoS attacks-GoldenEye, FTP-BruteForce, DoS attacks-SlowHTTPTest, 
+       DoS attacks-Slowloris
+
+3. HISTORISCHE ANALYSE
+----------------------
+Die IP-Kommunikationshistorie zeigt ein besorgniserregendes Muster:
+
+   • Insgesamt 14.116 erfasste NetFlow-Einträge zwischen diesen beiden IPs
+   • Konsistentes Muster über alle Flows:
+     - Identischer Zielport (21/FTP)
+     - Variierende Quellports (typisch für automatisierte Angriffe)
+     - Nahezu identische Paketgrößen und -anzahlen
+     - Konstanter TTL-Wert (63) deutet auf automatisiertes Tool hin
+     - TCP_WIN_MAX_IN: 26883 konsistent über alle Flows
+
+4. ÜBEREINSTIMMUNG MIT ANGRIFFSSIGNATUR
+---------------------------------------
+Der Flow entspricht der FTP-Brute-Force-Signatur:
+
+   ✓ L4_DST_PORT: 21 (FTP-Port)
+   ✓ Hohe Flow-Anzahl von einzelner Quelle (14.116 Flows)
+   ✓ 14 Pakete pro Flow (innerhalb des Bereichs 11-51)
+   ✓ L7_PROTO: FTP-Protokoll identifiziert
+   ✓ Hoher NUM_PKTS_UP_TO_128_BYTES (14 - alle Pakete klein)
+   ✓ Einzelne Quell-IP zu FTP-Server
+
+================================================================================
+                        KATEGORISIERUNG DER BEDROHUNG
+================================================================================
+
+Primäre Klassifizierung:   FTP-BRUTE-FORCE-ANGRIFF
+Angriffskategorie:         Credential-Based Attack / Brute Force
+MITRE ATT&CK Referenz:     T1110.001 - Brute Force: Password Guessing
+Schweregrad:               HOCH
+
+Beschreibung:
+Ein FTP-Brute-Force-Angriff ist ein systematischer Versuch, durch wiederholtes
+Ausprobieren von Benutzername/Passwort-Kombinationen unbefugten Zugang zu einem
+FTP-Server zu erlangen. Die Quelle (AWS-Infrastruktur) deutet auf einen 
+kompromittierten Cloud-Server oder absichtlich gemietete Angriffsinfrastruktur hin.
+
+================================================================================
+                            RISIKOBEWERTUNG
+================================================================================
+
+Risikostufe:              HOCH
+Wahrscheinlichkeit:       Bestätigt (laufender Angriff)
+Auswirkung:               Potenziell kritisch
+
+Potenzielle Auswirkungen:
+   • Unbefugter Systemzugang bei erfolgreichem Login
+   • Datenexfiltration über FTP-Protokoll
+   • Lateral Movement im internen Netzwerk
+   • Installation von Malware oder Backdoors
+   • Compliance-Verstöße (DSGVO, ISO 27001)
+
+================================================================================
+                        EMPFOHLENE GEGENMASSNAHMEN
+================================================================================
+
+SOFORTMASSNAHMEN (Priorität: KRITISCH)
+--------------------------------------
+1. IP-Blockierung: Sofortige Firewall-Regel zur Blockierung der Quell-IP 
+   13.59.126.31 auf allen Perimeter-Geräten.
+
+2. FTP-Dienst prüfen: Überprüfung aller FTP-Authentifizierungslogs auf 
+   erfolgreiche Anmeldungen von der Angreifer-IP.
+
+3. Passwort-Reset: Sofortiger Reset aller FTP-Benutzerpasswörter.
+
+KURZFRISTIGE MASSNAHMEN (24-48 Stunden)
+---------------------------------------
+4. Rate-Limiting: Implementierung von Verbindungslimits für FTP-Dienst 
+   (max. 3 Fehlversuche pro Minute pro IP).
+
+5. Fail2Ban/IPS: Aktivierung automatischer IP-Blockierung nach 
+   fehlgeschlagenen Anmeldeversuchen.
+
+6. Geoblocking: Prüfung, ob Zugriffe aus US-Cloud-Infrastruktur 
+   geschäftlich erforderlich sind.
+
+LANGFRISTIGE MASSNAHMEN
+-----------------------
+7. FTP-Migration: Umstellung auf SFTP oder FTPS mit Zertifikatsauthentifizierung.
+
+8. Multi-Faktor-Authentifizierung: Implementierung von MFA für alle 
+   Remote-Zugänge.
+
+9. Netzwerksegmentierung: Isolierung des FTP-Servers in dediziertem VLAN.
+
+10. Abuse-Meldung: Meldung an Amazon AWS Abuse-Team (abuse@amazonaws.com).
+
+================================================================================
+                                  FAZIT
+================================================================================
+
+Die forensische Analyse bestätigt eindeutig, dass es sich bei dem untersuchten
+NetFlow-Eintrag um einen FTP-Brute-Force-Angriff handelt. Die Kombination aus
+Zielport 21, der enormen Anzahl von 14.116 historischen Flows zwischen denselben
+Endpunkten, dem konsistenten Muster kleiner Pakete und der bereits dokumentierten
+Bedrohungshistorie der beteiligten IP-Adressen lässt keinen Zweifel an der
+bösartigen Natur dieses Verkehrs.
+
+Die Quell-IP stammt aus der Amazon AWS-Infrastruktur, was auf einen 
+kompromittierten Cloud-Server oder gezielt für Angriffe gemietete Ressourcen
+hindeutet. Die Ziel-IP war bereits Ziel mehrerer Angriffstypen, was auf einen
+wertvollen oder schlecht geschützten Server hindeutet.
+
+Sofortige Schutzmaßnahmen sind dringend erforderlich, um eine erfolgreiche
+Kompromittierung zu verhindern.
+
+================================================================================
+                    ANALYSIERTE ROHDATEN (ORIGINAL)
+================================================================================
+
+netflow_id: 8917553
+IPV4_SRC_ADDR: 13.59.126.31
+L4_SRC_PORT: 34906
+IPV4_DST_ADDR: 172.31.69.25
+L4_DST_PORT: 21
+PROTOCOL: 6
+L7_PROTO: 1.178
+IN_BYTES: 420
+IN_PKTS: 7
+OUT_BYTES: 280
+OUT_PKTS: 7
+TCP_FLAGS: 22
+CLIENT_TCP_FLAGS: 2
+SERVER_TCP_FLAGS: 20
+FLOW_DURATION_MILLISECONDS: 4294873
+DURATION_IN: 94
+DURATION_OUT: 94
+MIN_TTL: 63
+MAX_TTL: 63
+LONGEST_FLOW_PKT: 60
+SHORTEST_FLOW_PKT: 40
+MIN_IP_PKT_LEN: 40
+MAX_IP_PKT_LEN: 60
+SRC_TO_DST_SECOND_BYTES: 420.0
+DST_TO_SRC_SECOND_BYTES: 280.0
+RETRANSMITTED_IN_BYTES: 0
+RETRANSMITTED_IN_PKTS: 0
+RETRANSMITTED_OUT_BYTES: 0
+RETRANSMITTED_OUT_PKTS: 0
+SRC_TO_DST_AVG_THROUGHPUT: 32000
+DST_TO_SRC_AVG_THROUGHPUT: 16000
+NUM_PKTS_UP_TO_128_BYTES: 14
+NUM_PKTS_128_TO_256_BYTES: 0
+NUM_PKTS_256_TO_512_BYTES: 0
+NUM_PKTS_512_TO_1024_BYTES: 0
+NUM_PKTS_1024_TO_1514_BYTES: 0
+TCP_WIN_MAX_IN: 26883
+TCP_WIN_MAX_OUT: 0
+ICMP_TYPE: 0
+ICMP_IPV4_TYPE: 0
+DNS_QUERY_ID: 0
+DNS_QUERY_TYPE: 0
+DNS_TTL_ANSWER: 0
+FTP_COMMAND_RET_CODE: 0
+
+================================================================================
+                            ENDE DES BERICHTS
+================================================================================

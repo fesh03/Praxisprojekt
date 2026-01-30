@@ -1,0 +1,219 @@
+================================================================================
+           FORENSISCHE NETFLOW-ANALYSE - SICHERHEITSBERICHT
+================================================================================
+Datum der Analyse: 25. Januar 2026
+NetFlow-ID: 9487383
+Analyst: Forensisches Netzwerk-Sicherheitssystem
+================================================================================
+
+[KLASSIFIZIERUNG: BESTÄTIGT]
+
+Der analysierte NetFlow-Eintrag wird als BÖSARTIGER NETZWERKVERKEHR klassifiziert.
+Die ursprüngliche NIDS-Markierung wird hiermit bestätigt.
+
+================================================================================
+                           BEWEISFÜHRUNG
+================================================================================
+
+1. GEOLOKALISIERUNG DER BETEILIGTEN IP-ADRESSEN
+-------------------------------------------------------------------------------
+   Quell-IP (18.218.11.51):
+   • Land: Vereinigte Staaten
+   • Region: Ohio
+   • Stadt: Dublin
+   • ISP: Amazon.com, Inc.
+   • AS-Nummer: AS16509 (Amazon.com, Inc.)
+   • Koordinaten: 40.0992, -83.1141
+   
+   Ziel-IP (172.31.69.28):
+   • Klassifizierung: Private/Interne IP-Adresse (RFC 1918)
+   • Bereich: 172.16.0.0 - 172.31.255.255
+   • Hinweis: Typisch für AWS VPC-interne Ressourcen
+
+2. BEDROHUNGSINFORMATIONEN (THREAT INTELLIGENCE)
+-------------------------------------------------------------------------------
+   Quell-IP (18.218.11.51) - BEKANNTE BEDROHUNGEN:
+   ✗ DDOS attack-HOIC
+   ✗ DDoS attacks-LOIC-HTTP
+   ✗ DDOS attack-LOIC-UDP
+   
+   Ziel-IP (172.31.69.28) - HISTORISCHE ANGRIFFE:
+   ✗ DDOS attack-HOIC
+   ✗ Brute Force - Web
+   ✗ DDOS attack-LOIC-UDP
+   ✗ Brute Force - XSS
+   ✗ SQL Injection
+
+3. HISTORISCHE KOMMUNIKATIONSANALYSE
+-------------------------------------------------------------------------------
+   KRITISCHER BEFUND: 108.407 NetFlow-Einträge zwischen diesen IP-Adressen
+   
+   Gemeinsame Merkmale aller historischen Flows:
+   • Identische Zielport: 80 (HTTP)
+   • Identisches Protokoll: TCP/HTTP
+   • Konsistente TCP-Flags: 219 (Client), 27 (Server)
+   • Identische Paketgrößenverteilung
+   • Identische TTL-Werte: 127
+   • Identische maximale TCP-Fenstergröße: 65535 (ein/out: 26883)
+   
+   Diese Uniformität über 108.407+ Verbindungen ist ein starker Indikator
+   für automatisierten/werkzeugbasierten Angriffsverkehr.
+
+4. PROTOKOLLANALYSE
+-------------------------------------------------------------------------------
+   Layer 4 Protokoll: TCP (Transmission Control Protocol) - ID 6
+   Layer 7 Protokoll: HTTP - ID 7
+   
+   TCP-Flag-Analyse (Dezimalwert 219):
+   • Binär: 11011011
+   • Gesetzte Flags: FIN, SYN, RST, PSH, ACK, URG
+   • ANOMALIE: Die Kombination von SYN+FIN+RST ist protokollwidrig
+     und typisch für DoS-Angriffswerkzeuge
+
+5. FLOW-CHARAKTERISTIKEN
+-------------------------------------------------------------------------------
+   • Bytes eingehend: 552 | Bytes ausgehend: 1.147
+   • Pakete: 5 (ein) / 5 (aus)
+   • Flow-Dauer: 4.294.950 ms (~71,6 Minuten - Anomalie)
+   • Tatsächliche Aktivitätsdauer: 17 ms (ein/aus)
+   • Keine Retransmissionen (0 Bytes/Pakete)
+   • Durchsatz: 240.000 bps (src→dst) / 504.000 bps (dst→src)
+
+================================================================================
+                     KATEGORISIERUNG DER BEDROHUNG
+================================================================================
+
+PRIMÄRE KLASSIFIKATION: DDoS-Angriff (HTTP Flood)
+ANGRIFFSTYP: HOIC (High Orbit Ion Cannon) / LOIC-HTTP Variante
+
+ÜBEREINSTIMMUNG MIT BEKANNTEN SIGNATUREN:
+
+HOIC-Signaturmerkmale (Übereinstimmung: HOCH):
+[✓] L7_PROTO HTTP/HTTPS
+[✓] Hoher Throughput
+[✓] TCP_FLAGS mit PUSH/FIN-Kombination
+[✗] NUM_PKTS_1024_TO_1514_BYTES ist 0 (leichte Abweichung)
+
+LOIC HTTP Flood-Signaturmerkmale (Übereinstimmung: HOCH):
+[✓] L7_PROTO HTTP
+[✓] L4_DST_PORT 80
+[✓] Kurze aktive Flow-Dauer (17ms)
+[✓] Hohe IN_BYTES (552)
+[✓] NUM_PKTS_256_TO_512_BYTES: 1
+[✓] Verteilte Quellen (AWS-Infrastruktur)
+
+Web Brute Force (Sekundäre Übereinstimmung):
+[✓] L7_PROTO HTTP
+[✓] L4_DST_PORT 80
+[✓] Hohe Flow-Rate (108.407 Verbindungen)
+[✓] Einzelne Quelle zu Webanwendung
+[✓] NUM_PKTS_256_TO_512_BYTES: 1
+
+================================================================================
+                          RISIKOBEWERTUNG
+================================================================================
+
+RISIKOSTUFE: HOCH (8/10)
+
+Faktoren:
+• Quell-IP ist bekannter DDoS-Angreifer ......................... +3
+• Massives Verbindungsvolumen (108.407 Flows) ................... +2
+• Protokollanomalien (TCP-Flags) ................................ +1
+• Ziel-IP war bereits Opfer mehrerer Angriffsarten .............. +1
+• Automatisiertes Werkzeugmuster erkennbar ...................... +1
+• AWS-Infrastruktur als Angriffsquelle (legitim erscheinend) .... +0
+
+Mildernde Faktoren:
+• Server antwortet normal (OUT_BYTES: 1.147) .................... -0
+• Keine Retransmissionen ........................................ -0
+
+================================================================================
+                     EMPFOHLENE GEGENMASSNAHMEN
+================================================================================
+
+SOFORTMASSNAHMEN (Priorität: KRITISCH):
+1. IP-Adresse 18.218.11.51 auf Firewall blockieren
+2. Rate-Limiting für HTTP-Anfragen auf Port 80 aktivieren
+3. Web Application Firewall (WAF) Regeln verschärfen
+4. AWS Security Group für 172.31.69.28 überprüfen
+
+MITTELFRISTIGE MASSNAHMEN:
+5. Gesamten IP-Bereich 18.218.0.0/16 (AWS Ohio) überwachen
+6. Anomalie-basierte Erkennung für TCP-Flag-Kombinationen implementieren
+7. DDoS-Mitigation-Service evaluieren
+8. Incident Response Team benachrichtigen
+
+LANGFRISTIGE MASSNAHMEN:
+9. Threat Intelligence Feed für AWS-IP-Bereiche integrieren
+10. Automatische Blockierung bei >1000 Verbindungen/Stunde implementieren
+
+================================================================================
+                              FAZIT
+================================================================================
+
+Die forensische Analyse bestätigt eindeutig, dass der NetFlow-Eintrag 9487383
+bösartigen Netzwerkverkehr darstellt. Die Kombination aus:
+
+• Bekannter Angreifer-IP mit dokumentierter DDoS-Historie
+• Über 108.000 Verbindungen zwischen denselben Endpunkten
+• Protokollanomalien (ungewöhnliche TCP-Flag-Kombination)
+• Übereinstimmung mit HOIC/LOIC HTTP-Flood Signaturen
+• Uniformes Verhaltensmuster typisch für automatisierte Angriffswerkzeuge
+
+...liefert ausreichende forensische Beweise für die Klassifizierung als
+DDoS-Angriff (HTTP Flood Variante).
+
+Die ursprüngliche NIDS-Klassifizierung wird hiermit BESTÄTIGT.
+
+================================================================================
+                    ANALYSIERTE ROHDATEN (ORIGINAL)
+================================================================================
+
+netflow_id: 9487383
+IPV4_SRC_ADDR: 18.218.11.51
+L4_SRC_PORT: 61571
+IPV4_DST_ADDR: 172.31.69.28
+L4_DST_PORT: 80
+PROTOCOL: 6
+L7_PROTO: 7.0
+IN_BYTES: 552
+IN_PKTS: 5
+OUT_BYTES: 1147
+OUT_PKTS: 5
+TCP_FLAGS: 219
+CLIENT_TCP_FLAGS: 219
+SERVER_TCP_FLAGS: 27
+FLOW_DURATION_MILLISECONDS: 4294950
+DURATION_IN: 17
+DURATION_OUT: 17
+MIN_TTL: 127
+MAX_TTL: 127
+LONGEST_FLOW_PKT: 975
+SHORTEST_FLOW_PKT: 40
+MIN_IP_PKT_LEN: 40
+MAX_IP_PKT_LEN: 975
+SRC_TO_DST_SECOND_BYTES: 552.0
+DST_TO_SRC_SECOND_BYTES: 1147.0
+RETRANSMITTED_IN_BYTES: 0
+RETRANSMITTED_IN_PKTS: 0
+RETRANSMITTED_OUT_BYTES: 0
+RETRANSMITTED_OUT_PKTS: 0
+SRC_TO_DST_AVG_THROUGHPUT: 240000
+DST_TO_SRC_AVG_THROUGHPUT: 504000
+NUM_PKTS_UP_TO_128_BYTES: 8
+NUM_PKTS_128_TO_256_BYTES: 0
+NUM_PKTS_256_TO_512_BYTES: 1
+NUM_PKTS_512_TO_1024_BYTES: 1
+NUM_PKTS_1024_TO_1514_BYTES: 0
+TCP_WIN_MAX_IN: 65535
+TCP_WIN_MAX_OUT: 26883
+ICMP_TYPE: 0
+ICMP_IPV4_TYPE: 0
+DNS_QUERY_ID: 0
+DNS_QUERY_TYPE: 0
+DNS_TTL_ANSWER: 0
+FTP_COMMAND_RET_CODE: 0
+
+================================================================================
+                         ENDE DES BERICHTS
+================================================================================

@@ -1,0 +1,207 @@
+================================================================================
+                    FORENSISCHE NETFLOW-ANALYSE - SICHERHEITSBERICHT
+================================================================================
+
+Bericht-ID:         3897942
+Erstellungsdatum:   24. Januar 2026
+Analyst:            Automatisierte Forensische Analyse
+
+================================================================================
+[KLASSIFIZIERUNG: BESTÄTIGT]
+================================================================================
+
+Der analysierte NetFlow-Eintrag wird als BÖSARTIG eingestuft. Die Untersuchung 
+bestätigt die Klassifizierung des Network Intrusion Detection Systems (NIDS).
+
+================================================================================
+                              BEWEISFÜHRUNG
+================================================================================
+
+1. QUELL-IP-ANALYSE (18.217.165.70)
+   ─────────────────────────────────────────────────────────────────────────────
+   • Geografischer Standort: Dublin, Ohio, USA
+   • Internet Service Provider: Amazon.com, Inc. (AWS)
+   • Autonomes System: AS16509 Amazon.com, Inc.
+   • Bekannte Bedrohungshistorie: Die IP ist als Quelle von DoS-Angriffen 
+     (Slowloris) dokumentiert.
+
+2. ZIEL-IP-ANALYSE (172.31.69.25)
+   ─────────────────────────────────────────────────────────────────────────────
+   • Typ: Private/Interne IP-Adresse (RFC 1918)
+   • Bedrohungshistorie als Ziel: Diese IP wurde bereits Opfer von:
+     - DoS attacks-Hulk
+     - DDoS attacks-LOIC-HTTP
+     - SSH-Bruteforce
+     - DoS attacks-GoldenEye
+     - FTP-BruteForce
+     - DoS attacks-SlowHTTPTest
+     - DoS attacks-Slowloris
+
+3. KOMMUNIKATIONSHISTORIE
+   ─────────────────────────────────────────────────────────────────────────────
+   • Gefundene NetFlow-Einträge zwischen den IPs: 9.512 Flows
+   • Dieses extrem hohe Volumen an Verbindungen deutet auf eine anhaltende,
+     koordinierte Angriffskampagne hin.
+
+4. PROTOKOLLANALYSE
+   ─────────────────────────────────────────────────────────────────────────────
+   • Layer 4 Protokoll: TCP (Protokoll-ID: 6)
+   • Layer 7 Protokoll: HTTP
+   • Zielport: 80 (Standard HTTP-Port)
+
+5. FLOW-CHARAKTERISTIKEN - SLOWLORIS-INDIKATOREN
+   ─────────────────────────────────────────────────────────────────────────────
+   
+   a) Extrem lange Flow-Dauer:
+      → FLOW_DURATION_MILLISECONDS: 4.294.045 ms (~71,6 Minuten)
+      → Dies ist ein primärer Indikator für Slowloris-Angriffe, bei denen
+        Verbindungen absichtlich so lange wie möglich offen gehalten werden.
+
+   b) Niedriger Datendurchsatz:
+      → IN_BYTES: 2.066 Bytes über ~72 Minuten
+      → OUT_BYTES: 2.084 Bytes über ~72 Minuten
+      → SRC_TO_DST_AVG_THROUGHPUT: 144.000 bps (sehr niedrig für HTTP)
+      → Typisch für Slowloris: minimale Datenübertragung bei maximaler
+        Verbindungsdauer.
+
+   c) Paketgrößenverteilung:
+      → NUM_PKTS_UP_TO_128_BYTES: 60 von 62 Paketen (96,8%)
+      → Dies deutet auf fragmentierte, partielle HTTP-Anfragen hin, die
+        charakteristisch für Slowloris-Angriffe sind.
+
+   d) TCP-Flags-Analyse:
+      → TCP_FLAGS: 31 (binär: 11111 = FIN, SYN, RST, PSH, ACK)
+      → CLIENT_TCP_FLAGS: 31
+      → SERVER_TCP_FLAGS: 27
+      → Die Präsenz aller TCP-Flags in einem Flow ist ungewöhnlich für
+        legitimen HTTP-Verkehr und deutet auf manipulierte Verbindungen hin.
+
+   e) Keine Retransmissions:
+      → RETRANSMITTED_IN_BYTES: 0
+      → RETRANSMITTED_IN_PKTS: 0
+      → Trotz langer Verbindungsdauer keine Paketverluste, was auf eine
+        kontrollierte, absichtliche Verzögerung hindeutet.
+
+   f) Konsistente TTL-Werte:
+      → MIN_TTL: 63, MAX_TTL: 63
+      → Identische TTL-Werte deuten auf automatisierte Tools hin.
+
+================================================================================
+                        KATEGORISIERUNG DER BEDROHUNG
+================================================================================
+
+Angriffstyp:        DoS-Angriff - Slowloris
+Kategorie:          Denial of Service (DoS/DDoS)
+Schweregrad:        HOCH
+
+SLOWLORIS-ANGRIFFSMETHODIK:
+Der Slowloris-Angriff ist eine Application-Layer (Layer 7) DoS-Attacke, die
+darauf abzielt, Webserver-Ressourcen durch das Offenhalten vieler gleichzeitiger
+HTTP-Verbindungen zu erschöpfen. Der Angreifer sendet unvollständige HTTP-Anfragen
+und hält diese durch periodisches Nachsenden von HTTP-Headern offen, ohne die
+Anfrage jemals abzuschließen.
+
+ÜBEREINSTIMMENDE SIGNATUR-INDIKATOREN:
+   ✓ Sehr lange FLOW_DURATION_MILLISECONDS (4.294.045 ms)
+   ✓ Niedriger SRC_TO_DST_AVG_THROUGHPUT (144.000 bps)
+   ✓ HTTP als L7_PROTO (Protokoll 7.0)
+   ✓ Geringe IN_BYTES über lange Dauer (2.066 Bytes / 71,6 Min)
+   ✓ L4_DST_PORT 80 (HTTP-Standard)
+   ✓ Hohe Anzahl kleiner Pakete (NUM_PKTS_UP_TO_128_BYTES: 60)
+
+================================================================================
+                            RISIKOBEWERTUNG
+================================================================================
+
+AUSWIRKUNGEN:
+   • Ressourcenerschöpfung des Zielservers
+   • Potenzielle Dienstverweigerung für legitime Benutzer
+   • Erschöpfung der maximalen Verbindungskapazität
+   • Mögliche Beeinträchtigung nachgelagerter Systeme
+
+ANGREIFER-INFRASTRUKTUR:
+   • AWS-basierter Ursprung deutet auf Cloud-basierte Angriffsinfrastruktur hin
+   • 9.512 dokumentierte Flows zwischen Quell- und Ziel-IP zeigen anhaltende
+     Angriffskampagne
+
+================================================================================
+                        EMPFOHLENE GEGENMASSNAHMEN
+================================================================================
+
+SOFORTMASSNAHMEN:
+   1. IP-Blockierung von 18.217.165.70 auf Firewall-Ebene
+   2. Rate-Limiting für eingehende HTTP-Verbindungen implementieren
+   3. Verbindungs-Timeout-Werte reduzieren
+
+LANGFRISTIGE SCHUTZMASSNAHMEN:
+   1. Implementierung eines Web Application Firewall (WAF)
+   2. Konfiguration von mod_reqtimeout (Apache) oder ähnlichen Modulen
+   3. Einsatz von Load-Balancern mit DoS-Schutzfunktionen
+   4. Implementierung von Geo-Blocking oder IP-Reputationsdiensten
+   5. Überwachung auf Anomalien bei Verbindungsdauer und -anzahl
+
+================================================================================
+                                  FAZIT
+================================================================================
+
+Die forensische Analyse bestätigt eindeutig, dass es sich bei dem untersuchten
+NetFlow-Eintrag um einen Slowloris DoS-Angriff handelt. Die Kombination aus
+extremer Verbindungsdauer (71,6 Minuten), minimalem Datendurchsatz, hoher Anzahl
+kleiner Pakete und der dokumentierten Bedrohungshistorie der Quell-IP liefert
+schlüssige Beweise für bösartige Aktivität.
+
+Die Quell-IP 18.217.165.70 sollte als aktive Bedrohung behandelt und entsprechende
+Schutzmaßnahmen unverzüglich implementiert werden.
+
+================================================================================
+                       ANALYSIERTE ROHDATEN (ORIGINAL)
+================================================================================
+
+netflow_id: 3897942
+IPV4_SRC_ADDR: 18.217.165.70
+L4_SRC_PORT: 37658
+IPV4_DST_ADDR: 172.31.69.25
+L4_DST_PORT: 80
+PROTOCOL: 6
+L7_PROTO: 7.0
+IN_BYTES: 2066
+IN_PKTS: 32
+OUT_BYTES: 2084
+OUT_PKTS: 30
+TCP_FLAGS: 31
+CLIENT_TCP_FLAGS: 31
+SERVER_TCP_FLAGS: 27
+FLOW_DURATION_MILLISECONDS: 4294045
+DURATION_IN: 922
+DURATION_OUT: 922
+MIN_TTL: 63
+MAX_TTL: 63
+LONGEST_FLOW_PKT: 568
+SHORTEST_FLOW_PKT: 40
+MIN_IP_PKT_LEN: 40
+MAX_IP_PKT_LEN: 568
+SRC_TO_DST_SECOND_BYTES: 6341432.0
+DST_TO_SRC_SECOND_BYTES: 3201764.0
+RETRANSMITTED_IN_BYTES: 0
+RETRANSMITTED_IN_PKTS: 0
+RETRANSMITTED_OUT_BYTES: 0
+RETRANSMITTED_OUT_PKTS: 0
+SRC_TO_DST_AVG_THROUGHPUT: 144000
+DST_TO_SRC_AVG_THROUGHPUT: 144000
+NUM_PKTS_UP_TO_128_BYTES: 60
+NUM_PKTS_128_TO_256_BYTES: 0
+NUM_PKTS_256_TO_512_BYTES: 1
+NUM_PKTS_512_TO_1024_BYTES: 1
+NUM_PKTS_1024_TO_1514_BYTES: 0
+TCP_WIN_MAX_IN: 26883
+TCP_WIN_MAX_OUT: 26847
+ICMP_TYPE: 0
+ICMP_IPV4_TYPE: 0
+DNS_QUERY_ID: 0
+DNS_QUERY_TYPE: 0
+DNS_TTL_ANSWER: 0
+FTP_COMMAND_RET_CODE: 0
+
+================================================================================
+                            ENDE DES BERICHTS
+================================================================================

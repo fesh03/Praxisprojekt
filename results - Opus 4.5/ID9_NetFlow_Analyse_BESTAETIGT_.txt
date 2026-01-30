@@ -1,0 +1,214 @@
+================================================================================
+              FORENSISCHE NETFLOW-ANALYSE - SICHERHEITSBERICHT
+================================================================================
+
+Bericht-ID:          NFR-2026-0124-009
+Analyse-Datum:       24. Januar 2026
+NetFlow-ID:          9
+Analyst:             Forensischer Netzwerk-Sicherheitsanalyst (KI-gestützt)
+
+================================================================================
+                    [KLASSIFIZIERUNG: BESTÄTIGT]
+================================================================================
+
+Die vom Network Intrusion Detection System (NIDS) vorgenommene Klassifizierung 
+als bösartiger Netzwerkverkehr wird BESTÄTIGT.
+
+================================================================================
+                           BEWEISFÜHRUNG
+================================================================================
+
+1. GEOGRAFISCHE ANALYSE
+   ---------------------
+   Quell-IP (18.219.32.43):
+   • Land: United States
+   • Region: Ohio, Dublin
+   • ISP: Amazon.com, Inc. (AWS)
+   • AS: AS16509
+
+   Ziel-IP (172.31.69.28):
+   • Klassifizierung: Private/Interne IP-Adresse (RFC 1918)
+   • Hinweis: Teil des AWS VPC-Bereichs (172.31.0.0/16)
+
+2. BEDROHUNGSINTELLIGENZ
+   ----------------------
+   Quell-IP (18.219.32.43) - Bekannte Angriffshistorie:
+   ✗ DDOS attack-HOIC
+   ✗ DDoS attacks-LOIC-HTTP
+   ✗ DDOS attack-LOIC-UDP
+
+   Ziel-IP (172.31.69.28) - Frühere eingehende Angriffe:
+   ✗ DDOS attack-HOIC
+   ✗ Brute Force - Web
+   ✗ DDOS attack-LOIC-UDP
+   ✗ Brute Force - XSS
+   ✗ SQL Injection
+
+3. HISTORISCHE KOMMUNIKATIONSANALYSE
+   ----------------------------------
+   Gefundene Netflow-Einträge zwischen beiden IPs: 108.109 Flows
+
+   KRITISCHER BEFUND: Die extrem hohe Anzahl von über 108.000 Verbindungen
+   zwischen derselben Quell- und Ziel-IP auf Port 80 ist ein eindeutiges
+   Indiz für einen koordinierten DDoS-Angriff.
+
+4. PROTOKOLLANALYSE
+   -----------------
+   • Layer 4 Protokoll: TCP (Protokoll-ID: 6)
+   • Layer 7 Protokoll: HTTP (Protokoll-ID: 7.0)
+   • Zielport: 80 (Standard HTTP)
+
+5. FLOW-CHARAKTERISTIKEN
+   ----------------------
+   • Eingehende Bytes: 522
+   • Ausgehende Bytes: 1.147
+   • Eingehende Pakete: 5
+   • Ausgehende Pakete: 5
+   • Flow-Dauer: ~4.294.963 ms (ungewöhnlich hoher Wert)
+   • DURATION_IN/OUT: 3 ms (sehr kurze aktive Kommunikation)
+   • Durchsatz (Quelle → Ziel): 1.040.000 bps
+   • Durchsatz (Ziel → Quelle): 2.288.000 bps
+   • TCP_FLAGS: 219 (dezimal) = 11011011 (binär)
+     → Enthält: FIN, SYN, RST, PSH, ACK, URG Flags
+   • Paketgrößenverteilung: 8 Pakete ≤128 Bytes, 1 Paket 256-512 Bytes
+
+6. TCP-FLAG-ANALYSE
+   -----------------
+   CLIENT_TCP_FLAGS: 219 (FIN, SYN, RST, PSH, ACK, URG)
+   SERVER_TCP_FLAGS: 27 (FIN, SYN, PSH, ACK)
+
+   ANOMALIE: Die Kombination von SYN, FIN und RST in einem Flow ist
+   untypisch für legitimen HTTP-Verkehr und deutet auf manipulierte
+   TCP-Pakete hin, wie sie bei DDoS-Angriffstools verwendet werden.
+
+7. ÜBEREINSTIMMUNG MIT BEKANNTEN ANGRIFFSSIGNATUREN
+   -------------------------------------------------
+   Der analysierte Flow zeigt charakteristische Merkmale eines
+   HOIC (High Orbit Ion Cannon) / LOIC-HTTP DDoS-Angriffs:
+
+   ✓ L7_PROTO = HTTP (Übereinstimmung)
+   ✓ L4_DST_PORT = 80 (Übereinstimmung)
+   ✓ Hoher Durchsatz bei kleinen Paketen (Übereinstimmung)
+   ✓ Kurze effektive Dauer (DURATION_IN: 3ms)
+   ✓ TCP_FLAGS mit PUSH/FIN-Kombination (Übereinstimmung)
+   ✓ Massenhaft ähnliche Flows von gleicher Quelle (108.109 Flows)
+   ✓ Bekannte DDoS-Quelle laut Threat Intelligence
+
+================================================================================
+                    KATEGORISIERUNG DER BEDROHUNG
+================================================================================
+
+Angriffstyp:         DDoS-Angriff (Distributed Denial of Service)
+Untertyp:            HOIC / LOIC-HTTP Flood
+MITRE ATT&CK:        T1498 - Network Denial of Service
+Kategorie:           DoS/DDoS
+Schweregrad:         HOCH
+
+Angriffswerkzeug:    Mit hoher Wahrscheinlichkeit HOIC (High Orbit Ion Cannon)
+                     oder LOIC im HTTP-Flood-Modus
+
+Ziel des Angriffs:   Webserver/HTTP-Dienst auf Port 80
+
+================================================================================
+                         RISIKOBEWERTUNG
+================================================================================
+
+Risikostufe:         ████████░░  8/10 (HOCH)
+
+Begründung:
+• Die Quell-IP hat eine dokumentierte Historie von DDoS-Angriffen
+• Über 108.000 Verbindungsversuche zwischen den beiden Endpunkten
+• Die TCP-Flag-Kombinationen sind atypisch für legitimen Verkehr
+• Der Angriff richtet sich gegen einen HTTP-Dienst (geschäftskritisch)
+• AWS-Infrastruktur als Angriffsquelle erschwert einfache Blockierung
+
+================================================================================
+                    EMPFOHLENE GEGENMASSNAHMEN
+================================================================================
+
+SOFORTMASSNAHMEN:
+1. Blockierung der Quell-IP 18.219.32.43 auf Firewall-Ebene
+2. Rate-Limiting für eingehende HTTP-Verbindungen auf Port 80 aktivieren
+3. Aktivierung von DDoS-Schutzmechanismen (AWS Shield, Cloudflare, etc.)
+
+MITTELFRISTIGE MASSNAHMEN:
+4. Implementierung von Web Application Firewall (WAF) Regeln
+5. Geo-Blocking für nicht benötigte Regionen evaluieren
+6. Traffic-Analyse auf weitere kompromittierte Quell-IPs erweitern
+7. Meldung an AWS Abuse-Team (abuse@amazonaws.com)
+
+LANGFRISTIGE MASSNAHMEN:
+8. Implementierung eines Content Delivery Networks (CDN)
+9. Kapazitätsplanung für DDoS-Mitigation überprüfen
+10. Incident Response Playbook für DDoS-Angriffe aktualisieren
+
+================================================================================
+                              FAZIT
+================================================================================
+
+Der analysierte NetFlow-Eintrag (ID: 9) ist mit hoher Sicherheit Teil eines
+koordinierten DDoS-Angriffs vom Typ HOIC/LOIC-HTTP gegen den internen
+Webserver auf 172.31.69.28:80.
+
+Die Kombination aus:
+• Bekannter Angriffsquelle (Threat Intelligence)
+• Extremer Verbindungsfrequenz (>108.000 Flows)
+• Atypischen TCP-Flags
+• Charakteristischen HTTP-Flood-Mustern
+
+lässt keinen Zweifel an der bösartigen Natur dieses Netzwerkverkehrs.
+
+Die NIDS-Klassifizierung als Angriff wird hiermit BESTÄTIGT.
+
+================================================================================
+                    ANALYSIERTE ROHDATEN (ORIGINAL)
+================================================================================
+
+netflow_id: 9
+IPV4_SRC_ADDR: 18.219.32.43
+L4_SRC_PORT: 54574
+IPV4_DST_ADDR: 172.31.69.28
+L4_DST_PORT: 80
+PROTOCOL: 6
+L7_PROTO: 7.0
+IN_BYTES: 522
+IN_PKTS: 5
+OUT_BYTES: 1147
+OUT_PKTS: 5
+TCP_FLAGS: 219
+CLIENT_TCP_FLAGS: 219
+SERVER_TCP_FLAGS: 27
+FLOW_DURATION_MILLISECONDS: 4294963
+DURATION_IN: 3
+DURATION_OUT: 3
+MIN_TTL: 127
+MAX_TTL: 127
+LONGEST_FLOW_PKT: 975
+SHORTEST_FLOW_PKT: 40
+MIN_IP_PKT_LEN: 40
+MAX_IP_PKT_LEN: 975
+SRC_TO_DST_SECOND_BYTES: 522.0
+DST_TO_SRC_SECOND_BYTES: 1147.0
+RETRANSMITTED_IN_BYTES: 0
+RETRANSMITTED_IN_PKTS: 0
+RETRANSMITTED_OUT_BYTES: 0
+RETRANSMITTED_OUT_PKTS: 0
+SRC_TO_DST_AVG_THROUGHPUT: 1040000
+DST_TO_SRC_AVG_THROUGHPUT: 2288000
+NUM_PKTS_UP_TO_128_BYTES: 8
+NUM_PKTS_128_TO_256_BYTES: 0
+NUM_PKTS_256_TO_512_BYTES: 1
+NUM_PKTS_512_TO_1024_BYTES: 1
+NUM_PKTS_1024_TO_1514_BYTES: 0
+TCP_WIN_MAX_IN: 65535
+TCP_WIN_MAX_OUT: 26883
+ICMP_TYPE: 0
+ICMP_IPV4_TYPE: 0
+DNS_QUERY_ID: 0
+DNS_QUERY_TYPE: 0
+DNS_TTL_ANSWER: 0
+FTP_COMMAND_RET_CODE: 0
+
+================================================================================
+                          ENDE DES BERICHTS
+================================================================================

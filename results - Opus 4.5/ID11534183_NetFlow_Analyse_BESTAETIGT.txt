@@ -1,0 +1,239 @@
+================================================================================
+          FORENSISCHE NETFLOW-ANALYSE - SICHERHEITSBERICHT
+================================================================================
+
+Netflow-ID:        11534183
+Analysedatum:      25. Januar 2026
+Analyst:           Automatisierte Forensische Analyse
+
+--------------------------------------------------------------------------------
+[KLASSIFIZIERUNG: BESTÄTIGT]
+--------------------------------------------------------------------------------
+
+Der analysierte Netzwerkverkehr wird als BÖSARTIG eingestuft.
+Die NIDS-Klassifizierung wird hiermit BESTÄTIGT.
+
+================================================================================
+                            BEWEISFÜHRUNG
+================================================================================
+
+1. GEOLOKALISIERUNG DER BETEILIGTEN IP-ADRESSEN
+--------------------------------------------------------------------------------
+
+   Quell-IP (13.59.126.31):
+   - Land:        United States
+   - Region:      Ohio
+   - Stadt:       Dublin
+   - ISP:         Amazon.com, Inc.
+   - AS:          AS16509 Amazon.com, Inc.
+   - Koordinaten: 40.0992, -83.1141
+   - Bewertung:   AWS-gehostete Infrastruktur - häufig für automatisierte 
+                  Angriffe missbraucht
+
+   Ziel-IP (172.31.69.25):
+   - Typ:         Private/Interne IP-Adresse (RFC 1918)
+   - Bewertung:   Interne Infrastruktur, typisches Ziel für externe Angriffe
+
+
+2. BEDROHUNGSINFORMATIONEN (THREAT INTELLIGENCE)
+--------------------------------------------------------------------------------
+
+   Quell-IP (13.59.126.31) - Bekannte Aktivitäten:
+   → DoS attacks-SlowHTTPTest
+
+   Ziel-IP (172.31.69.25) - Historische Angriffe:
+   → DoS attacks-Hulk
+   → DDoS attacks-LOIC-HTTP
+   → SSH-Bruteforce
+   → DoS attacks-GoldenEye
+   → FTP-BruteForce
+   → DoS attacks-SlowHTTPTest
+   → DoS attacks-Slowloris
+
+   KRITISCH: Das Ziel wurde bereits mehrfach durch FTP-BruteForce-Angriffe 
+   attackiert. Die Quell-IP ist in Bedrohungsdatenbanken als Angreifer bekannt.
+
+
+3. HISTORISCHE KOMMUNIKATIONSANALYSE
+--------------------------------------------------------------------------------
+
+   Gefundene Netflow-Einträge zwischen beiden IPs: 14.116
+
+   Diese extrem hohe Anzahl von Verbindungen zwischen derselben Quell- und
+   Ziel-IP ist ein starker Indikator für automatisierte Angriffsaktivität.
+
+   Muster der historischen Flows:
+   - Alle Verbindungen zielen auf Port 21 (FTP)
+   - Wechselnde Quell-Ports (55592, 44632, 38010, 45998, 50784, 56046...)
+   - Identische Paketgrößen und TCP-Flag-Muster
+   - Konsistente Flow-Charakteristiken (IN_BYTES: 420-480, OUT_BYTES: 280-320)
+
+
+4. PROTOKOLLANALYSE
+--------------------------------------------------------------------------------
+
+   Transport-Protokoll: TCP (Protocol ID: 6)
+   Anwendungsprotokoll: FTP (L7_PROTO: 1.178)
+   Ziel-Port:          21 (Standard-FTP-Control-Port)
+
+
+5. FLOW-CHARAKTERISTIKEN
+--------------------------------------------------------------------------------
+
+   Analysewerte aus dem Flow (netflow_id: 11534183):
+
+   | Parameter                    | Wert        | Bewertung                  |
+   |------------------------------|-------------|----------------------------|
+   | IN_BYTES                     | 420         | Kleine Pakete (typisch BF) |
+   | IN_PKTS                      | 7           | Geringe Paketanzahl        |
+   | OUT_BYTES                    | 280         | Minimale Antwort           |
+   | OUT_PKTS                     | 7           | Symmetrische Kommunikation |
+   | TCP_FLAGS                    | 22          | SYN+ACK+RST Kombination    |
+   | CLIENT_TCP_FLAGS             | 2           | SYN (Verbindungsaufbau)    |
+   | SERVER_TCP_FLAGS             | 20          | SYN+ACK+RST                |
+   | FLOW_DURATION_MILLISECONDS   | 4.294.858   | ~71 Minuten                |
+   | NUM_PKTS_UP_TO_128_BYTES     | 14          | Alle Pakete sehr klein     |
+   | RETRANSMITTED_IN_PKTS        | 0           | Keine Retransmissions      |
+   | FTP_COMMAND_RET_CODE         | 0           | Kein erfolgreicher Login   |
+
+   ANALYSE: 
+   - Alle Pakete unter 128 Bytes → typisch für Login-Versuche
+   - Wechselnde Quell-Ports bei konstantem Ziel-Port 21
+   - TCP-Flags zeigen wiederholte Verbindungsversuche
+
+
+================================================================================
+                      KATEGORISIERUNG DER BEDROHUNG
+================================================================================
+
+   Angriffstyp:       FTP Brute Force Attack
+   Kategorie:         Brute Force / Credential Stuffing
+   Schweregrad:       HOCH
+
+   ABGLEICH MIT ANGRIFFSSIGNATUR (ftp_brute_force):
+   ┌─────────────────────────────────────────────────────────────────────────┐
+   │  Signatur-Indikator              │ Im Flow vorhanden │ Übereinstimmung │
+   ├─────────────────────────────────────────────────────────────────────────┤
+   │  L4_DST_PORT 21                  │ ✓ (Port 21)       │ JA              │
+   │  Hohe Flow-Anzahl                │ ✓ (14.116 Flows)  │ JA              │
+   │  L7_PROTO FTP                    │ ✓ (1.178)         │ JA              │
+   │  Hoher NUM_PKTS_UP_TO_128_BYTES  │ ✓ (14 Pakete)     │ JA              │
+   │  Ein SRC zu FTP Server           │ ✓ (konsistent)    │ JA              │
+   │  Wechselnde Quell-Ports          │ ✓ (nachgewiesen)  │ JA              │
+   └─────────────────────────────────────────────────────────────────────────┘
+
+   ERGEBNIS: 6 von 6 Hauptindikatoren stimmen mit der Angriffssignatur überein.
+
+
+================================================================================
+                          RISIKOBEWERTUNG
+================================================================================
+
+   Risikostufe:                    HOCH
+
+   Begründung:
+   1. Die Quell-IP ist in Threat-Intelligence-Datenbanken als Angreifer gelistet
+   2. Das Ziel wurde bereits mehrfach durch FTP-Brute-Force attackiert
+   3. Über 14.000 Verbindungsversuche von derselben Quelle
+   4. Alle technischen Indikatoren entsprechen dem FTP-Brute-Force-Muster
+   5. Der Angriff nutzt AWS-Infrastruktur zur Verschleierung
+
+   Potenzielle Auswirkungen:
+   - Kompromittierung von FTP-Zugangsdaten
+   - Unbefugter Dateizugriff auf den Server
+   - Lateral Movement innerhalb des Netzwerks
+   - Datenexfiltration über FTP
+
+
+================================================================================
+                      EMPFOHLENE GEGENMASSNAHMEN
+================================================================================
+
+   SOFORTMASSNAHMEN (Priorität KRITISCH):
+   □ IP 13.59.126.31 in Firewall/IPS blocken
+   □ FTP-Zugangspasswörter zurücksetzen
+   □ FTP-Server-Logs auf erfolgreiche Logins prüfen
+   □ Rate-Limiting für FTP-Verbindungen aktivieren
+
+   KURZFRISTIGE MASSNAHMEN (Priorität HOCH):
+   □ Fail2Ban oder ähnliche Brute-Force-Protection implementieren
+   □ FTP durch SFTP oder FTPS ersetzen
+   □ Zwei-Faktor-Authentifizierung für FTP einrichten
+   □ Geoblocking für AWS-IP-Bereiche evaluieren
+
+   LANGFRISTIGE MASSNAHMEN:
+   □ Network Segmentation verbessern
+   □ Continuous Monitoring für FTP-Dienste einrichten
+   □ Security Awareness Training für Administratoren
+
+
+================================================================================
+                               FAZIT
+================================================================================
+
+   Die forensische Analyse bestätigt eindeutig, dass es sich bei dem 
+   untersuchten Netzwerkverkehr um einen FTP-Brute-Force-Angriff handelt.
+
+   Die Kombination aus:
+   - Bekannter Angreifer-IP in Threat-Intelligence-Datenbanken
+   - Über 14.000 Verbindungsversuche zum FTP-Server
+   - Vollständige Übereinstimmung mit der FTP-Brute-Force-Signatur
+   - Historische Angriffe auf dasselbe Ziel
+
+   liefert eine eindeutige Beweislage für bösartige Aktivität.
+
+   Die NIDS-Klassifizierung wird als KORREKT bewertet.
+
+
+================================================================================
+                    ANALYSIERTE ROHDATEN (ORIGINAL)
+================================================================================
+
+netflow_id: 11534183
+IPV4_SRC_ADDR: 13.59.126.31
+L4_SRC_PORT: 56046
+IPV4_DST_ADDR: 172.31.69.25
+L4_DST_PORT: 21
+PROTOCOL: 6
+L7_PROTO: 1.178
+IN_BYTES: 420
+IN_PKTS: 7
+OUT_BYTES: 280
+OUT_PKTS: 7
+TCP_FLAGS: 22
+CLIENT_TCP_FLAGS: 2
+SERVER_TCP_FLAGS: 20
+FLOW_DURATION_MILLISECONDS: 4294858
+DURATION_IN: 109
+DURATION_OUT: 109
+MIN_TTL: 63
+MAX_TTL: 63
+LONGEST_FLOW_PKT: 60
+SHORTEST_FLOW_PKT: 40
+MIN_IP_PKT_LEN: 40
+MAX_IP_PKT_LEN: 60
+SRC_TO_DST_SECOND_BYTES: 420.0
+DST_TO_SRC_SECOND_BYTES: 280.0
+RETRANSMITTED_IN_BYTES: 0
+RETRANSMITTED_IN_PKTS: 0
+RETRANSMITTED_OUT_BYTES: 0
+RETRANSMITTED_OUT_PKTS: 0
+SRC_TO_DST_AVG_THROUGHPUT: 24000
+DST_TO_SRC_AVG_THROUGHPUT: 16000
+NUM_PKTS_UP_TO_128_BYTES: 14
+NUM_PKTS_128_TO_256_BYTES: 0
+NUM_PKTS_256_TO_512_BYTES: 0
+NUM_PKTS_512_TO_1024_BYTES: 0
+NUM_PKTS_1024_TO_1514_BYTES: 0
+TCP_WIN_MAX_IN: 26883
+TCP_WIN_MAX_OUT: 0
+ICMP_TYPE: 0
+ICMP_IPV4_TYPE: 0
+DNS_QUERY_ID: 0
+DNS_QUERY_TYPE: 0
+DNS_TTL_ANSWER: 0
+FTP_COMMAND_RET_CODE: 0
+
+================================================================================
+                          ENDE DES BERICHTS
+================================================================================

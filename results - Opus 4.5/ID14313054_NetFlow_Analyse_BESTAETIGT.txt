@@ -1,0 +1,211 @@
+================================================================================
+                    FORENSISCHE NETFLOW-ANALYSE - SICHERHEITSBERICHT
+================================================================================
+
+Netflow-ID:        14313054
+Analysedatum:      25. Januar 2026
+Analyst:           Automatisierte Forensische Analyse
+
+================================================================================
+[KLASSIFIZIERUNG: BESTÄTIGT]
+================================================================================
+
+Der analysierte Netzwerkverkehr wird als BÖSARTIG eingestuft.
+Die NIDS-Markierung wird hiermit BESTÄTIGT.
+
+================================================================================
+                              BEWEISFÜHRUNG
+================================================================================
+
+1. QUELL-IP ANALYSE (52.14.136.135)
+--------------------------------------------------------------------------------
+   • Standort: Dublin, Ohio, USA
+   • ISP: Amazon.com, Inc. (AWS)
+   • AS-Nummer: AS16509
+   • Koordinaten: 40.0992, -83.1141
+   
+   Bedrohungsinformationen:
+   → Die Quell-IP ist in Threat-Intelligence-Datenbanken als Ursprung 
+     folgender Angriffsarten bekannt:
+     - DDOS attack-HOIC
+     - DDoS attacks-LOIC-HTTP  
+     - DDOS attack-LOIC-UDP
+
+2. ZIEL-IP ANALYSE (172.31.69.28)
+--------------------------------------------------------------------------------
+   • Klassifikation: Private/Interne IP-Adresse (RFC 1918)
+   • Keine öffentliche Geolokation verfügbar
+   
+   Bedrohungsinformationen (eingehend):
+   → Das Ziel wurde bereits von folgenden Angriffen betroffen:
+     - DDOS attack-HOIC
+     - Brute Force -Web
+     - DDOS attack-LOIC-UDP
+     - Brute Force -XSS
+     - SQL Injection
+
+3. PROTOKOLL- UND VERKEHRSANALYSE
+--------------------------------------------------------------------------------
+   Transportprotokoll: UDP (Protokoll-ID: 17)
+   Anwendungsprotokoll: L7_PROTO 178.0 (QUIC über UDP)
+   Zielport: 80 (HTTP-Port)
+   
+   KRITISCHE VERKEHRSINDIKATOREN:
+   ┌─────────────────────────────────────────────────────────────────────┐
+   │ Metrik                          │ Wert           │ Bewertung        │
+   ├─────────────────────────────────┼────────────────┼──────────────────┤
+   │ Eingehende Bytes (IN_BYTES)     │ 95.160         │ HOCH             │
+   │ Eingehende Pakete (IN_PKTS)     │ 1.586          │ HOCH             │
+   │ Ausgehende Bytes (OUT_BYTES)    │ 0              │ ANOMAL           │
+   │ Ausgehende Pakete (OUT_PKTS)    │ 0              │ ANOMAL           │
+   │ Durchsatz (SRC_TO_DST)          │ 1.384.000 bps  │ HOCH             │
+   │ Durchsatz (DST_TO_SRC)          │ 0 bps          │ KEINE ANTWORT    │
+   │ Flow-Dauer                      │ 4.294.418 ms   │ LANGANHALTEND    │
+   │ Paketgröße (alle Pakete)        │ 60 Bytes       │ UNIFORM          │
+   │ Pakete bis 128 Bytes            │ 1.586 (100%)   │ FLOOD-MUSTER     │
+   │ TTL (Min/Max)                   │ 127/127        │ KONSTANT         │
+   └─────────────────────────────────────────────────────────────────────┘
+
+4. HISTORISCHE KOMMUNIKATIONSANALYSE
+--------------------------------------------------------------------------------
+   Gefundene Flows zwischen Quell- und Ziel-IP: 107.578
+   
+   → Extrem hohes Volumen an Verbindungen zwischen diesen beiden Endpunkten
+   → Frühere Verbindungen nutzten TCP (Protokoll 6) auf Port 80
+   → Historische TCP-Verbindungen zeigen bidirektionalen Verkehr
+   → Der aktuelle UDP-Flow zeigt KEINEN bidirektionalen Verkehr
+   
+   Vergleich mit historischen Flows:
+   - Historisch: Normale HTTP-Kommunikation (TCP, bidirektional)
+   - Aktuell: UDP-Flood (unidirektional, keine Antwort vom Ziel)
+
+================================================================================
+                        KATEGORISIERUNG DER BEDROHUNG
+================================================================================
+
+ANGRIFFSTYP:        LOIC UDP Flood / DDoS-Angriff
+KATEGORIE:          DoS/DDoS (Denial of Service)
+ANGRIFFSVEKTOR:     UDP-basierte Paketflut
+
+ÜBEREINSTIMMUNG MIT ANGRIFFSSIGNATUR "loic_udp_flood":
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ Indikator                              │ Erwartet        │ Beobachtet      │
+├────────────────────────────────────────┼─────────────────┼─────────────────┤
+│ Protokoll                              │ UDP (17)        │ ✓ UDP (17)      │
+│ Hohe IN_PKTS                           │ Ja              │ ✓ 1.586 Pakete  │
+│ Hoher SRC_TO_DST_AVG_THROUGHPUT        │ Ja              │ ✓ 1.384.000 bps │
+│ Hohe IN_BYTES, niedrige OUT_BYTES      │ Ja              │ ✓ 95.160 / 0    │
+│ Keine TCP_FLAGS relevant               │ Ja              │ ✓ TCP_FLAGS: 0  │
+│ Hohe Paketrate                         │ Ja              │ ✓ Bestätigt     │
+│ Uniforme Paketgröße                    │ Typisch         │ ✓ Alle 60 Bytes │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+ZUSÄTZLICHE BESTÄTIGUNGSFAKTOREN:
+• Die Quell-IP ist explizit für "DDOS attack-LOIC-UDP" in der 
+  Threat-Intelligence-Datenbank gelistet
+• 107.578 historische Flows deuten auf anhaltende Angriffskampagne hin
+• Das Ziel hat bereits dokumentierte LOIC-UDP-Angriffe erhalten
+
+================================================================================
+                              RISIKOBEWERTUNG
+================================================================================
+
+SCHWEREGRAD:        HOCH
+AUSWIRKUNG:         Potenzielle Dienstverweigerung für das Zielsystem
+VERTRAUEN:          SEHR HOCH (Multiple Indikatoren bestätigen die Klassifikation)
+
+RISIKOEINSCHÄTZUNG:
+• Der Angriff zielt auf Port 80 (HTTP-Dienst) eines internen Servers
+• Das hohe Paketvolumen kann Netzwerkressourcen erschöpfen
+• Die AWS-Herkunft deutet auf kompromittierte Cloud-Infrastruktur oder 
+  absichtlich gemietete Angriffsressourcen hin
+• Die langanhaltende Flow-Dauer (über 71 Minuten) zeigt einen anhaltenden Angriff
+
+================================================================================
+                         EMPFOHLENE GEGENMASSNAHMEN
+================================================================================
+
+SOFORTMASSNAHMEN:
+1. Blockierung der Quell-IP 52.14.136.135 auf der Firewall
+2. Rate-Limiting für UDP-Verkehr auf Port 80 implementieren
+3. Überprüfung des Zielsystems 172.31.69.28 auf Auswirkungen
+
+MITTELFRISTIGE MASSNAHMEN:
+4. Implementierung von UDP-Flood-Protection-Mechanismen
+5. Konfiguration von Intrusion Prevention System (IPS) Regeln
+6. Kontaktaufnahme mit AWS Abuse-Team bezüglich der Quell-IP
+
+LANGFRISTIGE MASSNAHMEN:
+7. Evaluierung einer DDoS-Mitigation-Lösung
+8. Netzwerksegmentierung zur Isolation kritischer Dienste
+9. Regelmäßige Überprüfung der Threat-Intelligence-Feeds
+
+================================================================================
+                                  FAZIT
+================================================================================
+
+Die forensische Analyse bestätigt eindeutig, dass der Netzwerkverkehr 
+mit Netflow-ID 14313054 einen LOIC UDP Flood-Angriff darstellt.
+
+Die Klassifikation basiert auf:
+✓ Übereinstimmung mit bekannten Angriffssignaturen
+✓ Threat-Intelligence-Daten zur Quell-IP
+✓ Anomale Verkehrsmuster (unidirektionaler UDP-Flood)
+✓ Historische Angriffsaktivitäten zwischen den beteiligten IP-Adressen
+✓ Charakteristische LOIC-UDP-Flood-Merkmale (uniforme kleine Pakete, 
+  hohes Volumen, keine Antwort)
+
+Das Zielsystem sollte umgehend geschützt und die Quell-IP blockiert werden.
+
+================================================================================
+                     ANALYSIERTE ROHDATEN (ORIGINAL)
+================================================================================
+
+netflow_id: 14313054
+IPV4_SRC_ADDR: 52.14.136.135
+L4_SRC_PORT: 53957
+IPV4_DST_ADDR: 172.31.69.28
+L4_DST_PORT: 80
+PROTOCOL: 17
+L7_PROTO: 178.0
+IN_BYTES: 95160
+IN_PKTS: 1586
+OUT_BYTES: 0
+OUT_PKTS: 0
+TCP_FLAGS: 0
+CLIENT_TCP_FLAGS: 0
+SERVER_TCP_FLAGS: 0
+FLOW_DURATION_MILLISECONDS: 4294418
+DURATION_IN: 548
+DURATION_OUT: 0
+MIN_TTL: 127
+MAX_TTL: 127
+LONGEST_FLOW_PKT: 60
+SHORTEST_FLOW_PKT: 60
+MIN_IP_PKT_LEN: 0
+MAX_IP_PKT_LEN: 60
+SRC_TO_DST_SECOND_BYTES: 95160.0
+DST_TO_SRC_SECOND_BYTES: 0.0
+RETRANSMITTED_IN_BYTES: 0
+RETRANSMITTED_IN_PKTS: 0
+RETRANSMITTED_OUT_BYTES: 0
+RETRANSMITTED_OUT_PKTS: 0
+SRC_TO_DST_AVG_THROUGHPUT: 1384000
+DST_TO_SRC_AVG_THROUGHPUT: 0
+NUM_PKTS_UP_TO_128_BYTES: 1586
+NUM_PKTS_128_TO_256_BYTES: 0
+NUM_PKTS_256_TO_512_BYTES: 0
+NUM_PKTS_512_TO_1024_BYTES: 0
+NUM_PKTS_1024_TO_1514_BYTES: 0
+TCP_WIN_MAX_IN: 0
+TCP_WIN_MAX_OUT: 0
+ICMP_TYPE: 0
+ICMP_IPV4_TYPE: 0
+DNS_QUERY_ID: 0
+DNS_QUERY_TYPE: 0
+DNS_TTL_ANSWER: 0
+FTP_COMMAND_RET_CODE: 0
+
+================================================================================
+                              ENDE DES BERICHTS
+================================================================================

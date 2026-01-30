@@ -1,0 +1,206 @@
+================================================================================
+            FORENSISCHE NETFLOW-ANALYSE - SICHERHEITSBERICHT
+================================================================================
+
+Analyse-ID:         6740399
+Analysedatum:       25. Januar 2026
+Analyst:            Automatisierte Forensische Analyse
+
+================================================================================
+[KLASSIFIZIERUNG: BESTÄTIGT]
+================================================================================
+
+Die vom NIDS vorgenommene Klassifizierung als bösartiger Netzwerkverkehr wird
+hiermit BESTÄTIGT. Es handelt sich um einen FTP-Brute-Force-Angriff.
+
+================================================================================
+                            BEWEISFÜHRUNG
+================================================================================
+
+1. GEOLOKALISIERUNG DER BETEILIGTEN IP-ADRESSEN
+-------------------------------------------------------------------------------
+   Quell-IP (18.221.219.4):
+   • Land:          Vereinigte Staaten
+   • Region:        Ohio
+   • Stadt:         Dublin
+   • ISP:           Amazon.com, Inc.
+   • AS:            AS16509 Amazon.com, Inc.
+   
+   Ziel-IP (172.31.69.25):
+   • Status:        Private/Interne IP-Adresse (RFC 1918)
+   • Bemerkung:     Internes Netzwerksystem
+
+2. BEDROHUNGSINFORMATIONEN (THREAT INTELLIGENCE)
+-------------------------------------------------------------------------------
+   Quell-IP (18.221.219.4):
+   → Bekannt für: FTP-BruteForce Angriffe
+   
+   Ziel-IP (172.31.69.25):
+   → Historische eingehende Angriffe: DoS attacks-Hulk, DDoS attacks-LOIC-HTTP,
+     SSH-Bruteforce, DoS attacks-GoldenEye, FTP-BruteForce, 
+     DoS attacks-SlowHTTPTest, DoS attacks-Slowloris
+
+3. HISTORISCHE KOMMUNIKATIONSANALYSE
+-------------------------------------------------------------------------------
+   • Gefundene Netflow-Einträge zwischen den IPs: 25.933 Flows
+   • Alle historischen Flows zeigen identisches Muster:
+     - Zielport 21 (FTP)
+     - Wechselnde Quellports (typisch für automatisierte Angriffe)
+     - Konsistente Paketgrößen (40-60 Bytes)
+     - Identische TCP-Flag-Muster
+
+4. PROTOKOLLANALYSE
+-------------------------------------------------------------------------------
+   • Layer 4 Protokoll: TCP (Protokoll-ID: 6)
+   • Layer 7 Protokoll: 1.0 (FTP)
+   • Zielport: 21 (Standard-FTP-Kontrollport)
+
+5. FLOW-CHARAKTERISTIKEN (aus analysierten Rohdaten)
+-------------------------------------------------------------------------------
+   • IN_BYTES: 840 | OUT_BYTES: 560
+   • IN_PKTS: 14 | OUT_PKTS: 14
+   • FLOW_DURATION_MILLISECONDS: 4.294.717 (~71 Minuten)
+   • TCP_FLAGS: 22 (SYN, ACK, RST)
+   • CLIENT_TCP_FLAGS: 2 (SYN)
+   • SERVER_TCP_FLAGS: 20 (ACK, RST)
+   • NUM_PKTS_UP_TO_128_BYTES: 28 (100% kleine Pakete)
+   • MIN_IP_PKT_LEN: 40 | MAX_IP_PKT_LEN: 60
+   • RETRANSMITTED Pakete: 0
+
+================================================================================
+                     KATEGORISIERUNG DER BEDROHUNG
+================================================================================
+
+ANGRIFFSTYP:        FTP Brute Force Angriff
+KATEGORIE:          Brute Force / Credential Stuffing
+SCHWEREGRAD:        HOCH
+
+ÜBEREINSTIMMUNG MIT ANGRIFFSSIGNATUR:
+-------------------------------------------------------------------------------
+Die folgenden Indikatoren der FTP-Brute-Force-Signatur wurden bestätigt:
+
+[✓] L4_DST_PORT 21 mit hoher Flow-Anzahl (25.933 historische Flows)
+[✓] 11-51 Pakete pro Flow (14 IN_PKTS + 14 OUT_PKTS = 28 Pakete)
+[✓] Eine Quell-IP zu FTP-Server (konsistentes Muster)
+[✓] L7_PROTO FTP (Wert: 1.0)
+[✓] Hoher NUM_PKTS_UP_TO_128_BYTES (28 Pakete - alle klein)
+[✓] Wechselnde Quellports bei identischem Zielport (automatisiert)
+
+ANGRIFFSMUSTER:
+-------------------------------------------------------------------------------
+Der Angreifer nutzt eine AWS-gehostete Infrastruktur (Amazon EC2, Ohio Region),
+um systematisch FTP-Anmeldeversuche gegen den internen FTP-Server durchzuführen.
+Die extrem hohe Anzahl von 25.933 Flows zeigt einen langanhaltenden, 
+automatisierten Brute-Force-Angriff.
+
+================================================================================
+                          RISIKOBEWERTUNG
+================================================================================
+
+RISIKOSTUFE:        ████████░░ 8/10 (HOCH)
+
+POTENZIELLE AUSWIRKUNGEN:
+• Kompromittierung von FTP-Zugangsdaten
+• Unbefugter Zugriff auf Dateisysteme
+• Datenexfiltration nach erfolgreichem Login
+• Nutzung als Pivot-Punkt für weitere Angriffe
+• Compliance-Verstöße (Datenschutz)
+
+INDIKATOREN FÜR ANHALTENDE BEDROHUNG:
+• Die Quell-IP ist in Threat-Intelligence-Datenbanken gelistet
+• Die Ziel-IP war bereits Ziel mehrerer Angriffstypen
+• Das Volumen von 25.933 Flows deutet auf Persistenz hin
+
+================================================================================
+                     EMPFOHLENE GEGENMASSNAHMEN
+================================================================================
+
+SOFORTMASSNAHMEN (Priorität: KRITISCH):
+-------------------------------------------------------------------------------
+1. IP-Blockierung
+   → Quell-IP 18.221.219.4 sofort auf Firewall-Ebene blockieren
+   
+2. FTP-Dienst-Überprüfung
+   → Authentifizierungslogs des FTP-Servers auf erfolgreiche Logins prüfen
+   → Kompromittierte Konten identifizieren und sperren
+
+3. Netzwerksegmentierung überprüfen
+   → Zugriff auf FTP-Server aus dem Internet einschränken
+
+LANGFRISTIGE MASSNAHMEN:
+-------------------------------------------------------------------------------
+4. FTP durch SFTP/FTPS ersetzen (verschlüsselte Übertragung)
+5. Rate-Limiting für FTP-Verbindungen implementieren
+6. Fail2Ban oder ähnliche Lösungen für automatische IP-Sperrung
+7. Multi-Faktor-Authentifizierung für kritische Dienste
+8. AWS IP-Bereich (AS16509) bei Nicht-Nutzung blockieren
+
+================================================================================
+                               FAZIT
+================================================================================
+
+Die forensische Analyse bestätigt eindeutig einen FTP-Brute-Force-Angriff
+von der IP-Adresse 18.221.219.4 (AWS/Amazon, Ohio) gegen den internen 
+FTP-Server 172.31.69.25.
+
+Die Beweislage ist erdrückend:
+• 25.933 historische Verbindungsversuche
+• Bekannte Angreifer-IP in Threat-Intelligence-Datenbanken
+• Vollständige Übereinstimmung mit FTP-Brute-Force-Signatur
+• Typische Automatisierungsmuster (wechselnde Quellports, konsistente Pakete)
+
+Es wird dringend empfohlen, die vorgeschlagenen Gegenmaßnahmen umgehend
+umzusetzen und den FTP-Server auf erfolgreiche Kompromittierungen zu prüfen.
+
+================================================================================
+                    ANALYSIERTE ROHDATEN (ORIGINAL)
+================================================================================
+
+netflow_id: 6740399
+IPV4_SRC_ADDR: 18.221.219.4
+L4_SRC_PORT: 43724
+IPV4_DST_ADDR: 172.31.69.25
+L4_DST_PORT: 21
+PROTOCOL: 6
+L7_PROTO: 1.0
+IN_BYTES: 840
+IN_PKTS: 14
+OUT_BYTES: 560
+OUT_PKTS: 14
+TCP_FLAGS: 22
+CLIENT_TCP_FLAGS: 2
+SERVER_TCP_FLAGS: 20
+FLOW_DURATION_MILLISECONDS: 4294717
+DURATION_IN: 250
+DURATION_OUT: 250
+MIN_TTL: 63
+MAX_TTL: 63
+LONGEST_FLOW_PKT: 60
+SHORTEST_FLOW_PKT: 40
+MIN_IP_PKT_LEN: 40
+MAX_IP_PKT_LEN: 60
+SRC_TO_DST_SECOND_BYTES: 840.0
+DST_TO_SRC_SECOND_BYTES: 560.0
+RETRANSMITTED_IN_BYTES: 0
+RETRANSMITTED_IN_PKTS: 0
+RETRANSMITTED_OUT_BYTES: 0
+RETRANSMITTED_OUT_PKTS: 0
+SRC_TO_DST_AVG_THROUGHPUT: 24000
+DST_TO_SRC_AVG_THROUGHPUT: 16000
+NUM_PKTS_UP_TO_128_BYTES: 28
+NUM_PKTS_128_TO_256_BYTES: 0
+NUM_PKTS_256_TO_512_BYTES: 0
+NUM_PKTS_512_TO_1024_BYTES: 0
+NUM_PKTS_1024_TO_1514_BYTES: 0
+TCP_WIN_MAX_IN: 26883
+TCP_WIN_MAX_OUT: 0
+ICMP_TYPE: 0
+ICMP_IPV4_TYPE: 0
+DNS_QUERY_ID: 0
+DNS_QUERY_TYPE: 0
+DNS_TTL_ANSWER: 0
+FTP_COMMAND_RET_CODE: 0
+
+================================================================================
+                          ENDE DES BERICHTS
+================================================================================

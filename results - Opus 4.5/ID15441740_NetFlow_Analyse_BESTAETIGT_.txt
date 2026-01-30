@@ -1,0 +1,235 @@
+================================================================================
+                    FORENSISCHE NETFLOW-ANALYSE - SICHERHEITSBERICHT
+================================================================================
+
+Bericht-ID:         15441740
+Analysedatum:       24. Januar 2026
+Analyst:            Automatisiertes NIDS-Validierungssystem
+
+================================================================================
+                              [KLASSIFIZIERUNG: BESTÄTIGT]
+================================================================================
+
+Der analysierte NetFlow-Datensatz wird als BÖSARTIG eingestuft.
+Die ursprüngliche NIDS-Markierung wird hiermit bestätigt.
+
+================================================================================
+                                  BEWEISFÜHRUNG
+================================================================================
+
+1. QUELL-IP-ANALYSE (18.218.115.60)
+--------------------------------------------------------------------------------
+   Geolokation:
+   - Land: United States
+   - Region: Ohio
+   - Stadt: Dublin
+   - ISP: Amazon.com, Inc. (AWS)
+   - AS: AS16509
+
+   Bedrohungsprofil:
+   Die Quell-IP ist in der Bedrohungsdatenbank mit folgenden Aktivitäten
+   verzeichnet:
+   → DDOS attack-HOIC
+   → DDoS attacks-LOIC-HTTP
+   → Brute Force -Web
+   → Brute Force -XSS
+   → SQL Injection
+   → DDOS attack-LOIC-UDP
+
+2. ZIEL-IP-ANALYSE (172.31.69.28)
+--------------------------------------------------------------------------------
+   Geolokation:
+   - Privater IP-Adressbereich (RFC 1918)
+   - Typisch für AWS VPC-Umgebungen
+
+   Eingehende Bedrohungen registriert:
+   → DDOS attack-HOIC
+   → Brute Force -Web
+   → DDOS attack-LOIC-UDP
+   → Brute Force -XSS
+   → SQL Injection
+
+3. HISTORISCHE KOMMUNIKATIONSANALYSE
+--------------------------------------------------------------------------------
+   Zwischen den beiden IP-Adressen wurden 112.110 NetFlow-Einträge gefunden.
+
+   Diese massive Anzahl von Verbindungen zwischen einer einzelnen Quell-IP
+   und einem internen Zielsystem ist ein starker Indikator für koordinierte
+   Angriffsaktivitäten.
+
+4. PROTOKOLL-ANALYSE
+--------------------------------------------------------------------------------
+   - Layer 4: TCP (Protokoll-ID 6)
+   - Layer 7: HTTP (Protokoll-ID 7.0)
+   - Zielport: 80 (Standard-HTTP)
+
+5. TRAFFIC-CHARAKTERISTIK DES ANALYSIERTEN FLOWS
+--------------------------------------------------------------------------------
+   Eingehend (Client → Server):
+   - IN_BYTES: 64.295 Bytes
+   - IN_PKTS: 205 Pakete
+   - SRC_TO_DST_AVG_THROUGHPUT: 514.360.000 bps (~514 Mbps)
+
+   Ausgehend (Server → Client):
+   - OUT_BYTES: 194.134 Bytes
+   - OUT_PKTS: 105 Pakete
+   - DST_TO_SRC_AVG_THROUGHPUT: 1.553.072.000 bps (~1,5 Gbps)
+
+   Kritische Indikatoren:
+   - FLOW_DURATION_MILLISECONDS: 0 (extrem kurze Flussdauer)
+   - DURATION_IN / DURATION_OUT: 0 ms
+   - TCP_FLAGS: 219 (dezimal) = 0xDB (binär: 11011011)
+     → Enthält: FIN, SYN, RST, PSH, ACK, URG
+     → Anomale Kombination mehrerer TCP-Flags
+
+   Paketgrößenverteilung:
+   - NUM_PKTS_UP_TO_128_BYTES: 108 (34,8% - viele kleine Pakete)
+   - NUM_PKTS_256_TO_512_BYTES: 51
+   - NUM_PKTS_512_TO_1024_BYTES: 50
+
+   Keine Retransmissions:
+   - RETRANSMITTED_IN_BYTES: 0
+   - RETRANSMITTED_OUT_BYTES: 0
+   → Deutet auf aggressive, schnelle Paketsendung ohne Wartezeiten hin
+
+================================================================================
+                          KATEGORISIERUNG DER BEDROHUNG
+================================================================================
+
+Primäre Klassifikation: DDoS-Angriff - HOIC (High Orbit Ion Cannon)
+
+Begründung:
+-----------
+Der Flow weist mehrere charakteristische Merkmale eines HOIC-Angriffs auf:
+
+1. HOHER HTTP-FLOOD-TRAFFIC
+   Der analysierte Flow zeigt IN_BYTES von 64.295 und OUT_BYTES von 194.134
+   über HTTP (Port 80, L7_PROTO 7.0).
+
+2. HOHE PAKETZAHL
+   205 eingehende und 105 ausgehende Pakete in einem einzelnen Flow.
+
+3. EXTREM KURZE DURATION
+   FLOW_DURATION_MILLISECONDS = 0, was auf aggressive Burst-Aktivität hindeutet.
+
+4. HOHER DURCHSATZ
+   SRC_TO_DST_AVG_THROUGHPUT: 514 Mbps
+   DST_TO_SRC_AVG_THROUGHPUT: 1,5 Gbps
+   Diese Werte sind für legitimen Webverkehr untypisch hoch.
+
+5. TCP-FLAG-ANOMALIE
+   TCP_FLAGS = 219 enthält PUSH und FIN, wie in der HOIC-Signatur beschrieben.
+
+6. BEKANNTE BEDROHUNGSQUELLE
+   Die Quell-IP 18.218.115.60 ist explizit für "DDOS attack-HOIC" in der
+   Bedrohungsdatenbank verzeichnet.
+
+Sekundäre Klassifikation: Mögliche Web Brute Force Komponente
+--------------------------------------------------------------
+Die hohe Anzahl von Paketen im Bereich 256-512 Bytes (NUM_PKTS_256_TO_512_BYTES: 51)
+sowie die HTTP-Protokollnutzung könnten zusätzlich auf Brute-Force-Versuche
+gegen Web-Authentifizierung hindeuten.
+
+================================================================================
+                               RISIKOBEWERTUNG
+================================================================================
+
+Risikoniveau: HOCH
+
+Faktoren:
+- Aktiver DDoS-Angriff auf interne Infrastruktur
+- Quell-IP ist bekannter Bedrohungsakteur mit multiplen Angriffstypen
+- Massive historische Kommunikation (112.110 Flows) deutet auf anhaltende
+  Angriffskampagne hin
+- Der Zielserver antwortet (OUT_BYTES vorhanden), was bedeutet, dass der
+  Angriff die Ressourcen des Servers beansprucht
+
+================================================================================
+                          EMPFOHLENE GEGENMASSNAHMEN
+================================================================================
+
+SOFORT:
+1. Die Quell-IP 18.218.115.60 auf Firewall-Ebene blockieren
+2. Rate-Limiting für eingehenden HTTP-Traffic auf Port 80 implementieren
+3. DDoS-Mitigation-Dienste aktivieren
+
+KURZFRISTIG:
+4. Den gesamten Netzwerkbereich von Amazon AWS (AS16509) auf verdächtige
+   Aktivitäten überwachen
+5. WAF-Regeln (Web Application Firewall) verstärken
+6. Geografische IP-Filterung für nicht benötigte Regionen erwägen
+
+LANGFRISTIG:
+7. Anomalie-basierte Erkennung für HTTP-Flood-Angriffe implementieren
+8. Kapazitätsplanung für DDoS-Resilienz durchführen
+9. Incident-Response-Plan für DDoS-Szenarien aktualisieren
+
+================================================================================
+                                    FAZIT
+================================================================================
+
+Der analysierte NetFlow-Datensatz (ID: 15441740) zeigt eindeutige Merkmale
+eines DDoS-Angriffs vom Typ HOIC (High Orbit Ion Cannon). Die Kombination aus:
+
+• Bekannter Bedrohungsquelle
+• Extrem hohem Durchsatz
+• Anomalen TCP-Flags
+• Massiver historischer Aktivität zwischen den IPs
+• HTTP-Flood-Charakteristik
+
+bestätigt die ursprüngliche NIDS-Klassifikation als bösartig.
+
+Die Klassifizierung wird als BESTÄTIGT eingestuft.
+
+================================================================================
+                        ANALYSIERTE ROHDATEN (ORIGINAL)
+================================================================================
+
+netflow_id: 15441740
+IPV4_SRC_ADDR: 18.218.115.60
+L4_SRC_PORT: 62876
+IPV4_DST_ADDR: 172.31.69.28
+L4_DST_PORT: 80
+PROTOCOL: 6
+L7_PROTO: 7.0
+IN_BYTES: 64295
+IN_PKTS: 205
+OUT_BYTES: 194134
+OUT_PKTS: 105
+TCP_FLAGS: 219
+CLIENT_TCP_FLAGS: 219
+SERVER_TCP_FLAGS: 27
+FLOW_DURATION_MILLISECONDS: 0
+DURATION_IN: 0
+DURATION_OUT: 0
+MIN_TTL: 127
+MAX_TTL: 127
+LONGEST_FLOW_PKT: 1975
+SHORTEST_FLOW_PKT: 40
+MIN_IP_PKT_LEN: 40
+MAX_IP_PKT_LEN: 1975
+SRC_TO_DST_SECOND_BYTES: 64295.0
+DST_TO_SRC_SECOND_BYTES: 194134.0
+RETRANSMITTED_IN_BYTES: 0
+RETRANSMITTED_IN_PKTS: 0
+RETRANSMITTED_OUT_BYTES: 0
+RETRANSMITTED_OUT_PKTS: 0
+SRC_TO_DST_AVG_THROUGHPUT: 514360000
+DST_TO_SRC_AVG_THROUGHPUT: 1553072000
+NUM_PKTS_UP_TO_128_BYTES: 108
+NUM_PKTS_128_TO_256_BYTES: 0
+NUM_PKTS_256_TO_512_BYTES: 51
+NUM_PKTS_512_TO_1024_BYTES: 50
+NUM_PKTS_1024_TO_1514_BYTES: 0
+TCP_WIN_MAX_IN: 8192
+TCP_WIN_MAX_OUT: 26883
+ICMP_TYPE: 0
+ICMP_IPV4_TYPE: 0
+DNS_QUERY_ID: 0
+DNS_QUERY_TYPE: 0
+DNS_TTL_ANSWER: 0
+FTP_COMMAND_RET_CODE: 0
+
+================================================================================
+                              ENDE DES BERICHTS
+================================================================================

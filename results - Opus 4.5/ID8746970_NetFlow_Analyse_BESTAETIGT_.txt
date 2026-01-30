@@ -1,0 +1,243 @@
+================================================================================
+                    FORENSISCHE NETFLOW-ANALYSE - SICHERHEITSBERICHT
+================================================================================
+
+Bericht-ID:         8746970
+Analysedatum:       24. Januar 2026
+Analyst:            KI-gestützte Forensische Analyse
+
+================================================================================
+[KLASSIFIZIERUNG: BESTÄTIGT]
+================================================================================
+
+Der analysierte NetFlow-Datensatz wird als BÖSARTIGER NETZWERKVERKEHR eingestuft.
+Die vorliegenden Beweise deuten auf einen Web Brute-Force-Angriff hin.
+
+================================================================================
+                              BEWEISFÜHRUNG
+================================================================================
+
+1. QUELL-IP-ANALYSE (18.218.115.60)
+--------------------------------------------------------------------------------
+   • Geolokation: Dublin, Ohio, United States
+   • ISP: Amazon.com, Inc. (AWS-Infrastruktur)
+   • ASN: AS16509 Amazon.com, Inc.
+   
+   BEDROHUNGSHISTORIE der Quell-IP:
+   Die IP-Adresse ist mit folgenden Angriffsmustern assoziiert:
+   - DDOS attack-HOIC
+   - DDoS attacks-LOIC-HTTP
+   - Brute Force -Web
+   - Brute Force -XSS
+   - SQL Injection
+   - DDOS attack-LOIC-UDP
+
+2. ZIEL-IP-ANALYSE (172.31.69.28)
+--------------------------------------------------------------------------------
+   • Klassifizierung: Private/Interne IP-Adresse (RFC 1918)
+   • Adressbereich: 172.16.0.0 - 172.31.255.255 (AWS VPC)
+   
+   BEDROHUNGSHISTORIE der Ziel-IP:
+   - DDOS attack-HOIC
+   - Brute Force -Web
+   - DDOS attack-LOIC-UDP
+   - Brute Force -XSS
+   - SQL Injection
+
+3. KOMMUNIKATIONSMUSTER-ANALYSE
+--------------------------------------------------------------------------------
+   • Protokoll Layer 4: TCP (ID: 6)
+   • Protokoll Layer 7: HTTP (ID: 7)
+   • Quellport: 59880 (ephemerer Port)
+   • Zielport: 80 (HTTP-Standardport)
+   
+   HISTORISCHE VERBINDUNGEN:
+   Es wurden 112.110 NetFlow-Einträge zwischen diesen IP-Adressen gefunden.
+   Diese massive Anzahl von Verbindungen ist ein starker Indikator für
+   automatisierte Angriffsaktivitäten.
+
+4. FLOW-CHARAKTERISTIKEN
+--------------------------------------------------------------------------------
+   • IN_BYTES: 503 Bytes (Client → Server)
+   • OUT_BYTES: 1147 Bytes (Server → Client)
+   • IN_PKTS: 5 Pakete
+   • OUT_PKTS: 5 Pakete
+   • FLOW_DURATION: ~4.294.925 ms
+   • DURATION_IN/OUT: 42 ms (kurze aktive Kommunikation)
+   
+   TCP-FLAGS-ANALYSE:
+   • TCP_FLAGS: 219 (binär: 11011011)
+     - SYN, FIN, RST, PSH, ACK Flags gesetzt
+   • CLIENT_TCP_FLAGS: 219
+   • SERVER_TCP_FLAGS: 27
+   
+   Die Kombination dieser Flags (insbesondere SYN+FIN+RST zusammen)
+   deutet auf abnormales TCP-Verhalten hin, typisch für Angriffsmuster.
+
+5. PAKETGRÖSSENVERTEILUNG
+--------------------------------------------------------------------------------
+   • NUM_PKTS_UP_TO_128_BYTES: 8 (Kontrollpakete)
+   • NUM_PKTS_256_TO_512_BYTES: 1 (HTTP-Request)
+   • NUM_PKTS_512_TO_1024_BYTES: 1 (HTTP-Response/Payload)
+   
+   Diese Verteilung entspricht dem typischen Muster eines HTTP-basierten
+   Brute-Force-Versuchs mit kleinen Authentifizierungsanfragen.
+
+6. DURCHSATZANALYSE
+--------------------------------------------------------------------------------
+   • SRC_TO_DST_AVG_THROUGHPUT: 88.000 bps
+   • DST_TO_SRC_AVG_THROUGHPUT: 208.000 bps
+   • TCP_WIN_MAX_IN: 65535 (maximale Fenstergröße)
+   • TCP_WIN_MAX_OUT: 26883
+   
+   Der asymmetrische Durchsatz mit höherem Rückverkehr deutet auf
+   Server-Antworten bei Authentifizierungsversuchen hin.
+
+7. NETZWERKQUALITÄT
+--------------------------------------------------------------------------------
+   • RETRANSMITTED_IN_BYTES: 0
+   • RETRANSMITTED_IN_PKTS: 0
+   • RETRANSMITTED_OUT_BYTES: 0
+   • RETRANSMITTED_OUT_PKTS: 0
+   
+   Keine Paketverluste - typisch für gezielte Angriffe von
+   gut angebundener Infrastruktur (AWS).
+
+8. TTL-ANALYSE
+--------------------------------------------------------------------------------
+   • MIN_TTL: 127
+   • MAX_TTL: 127
+   
+   Einheitlicher TTL-Wert deutet auf direkten Angriffspfad ohne
+   Routing-Variationen hin - konsistent mit Cloud-basiertem Angriff.
+
+================================================================================
+                        KATEGORISIERUNG DER BEDROHUNG
+================================================================================
+
+Primäre Klassifizierung:    WEB BRUTE-FORCE-ANGRIFF
+Sekundäre Klassifizierung:  Mögliche SQL-Injection-Versuche
+
+ÜBEREINSTIMMUNG MIT ANGRIFFSSIGNATUREN:
+
+Web Brute Force (Kategorie: Brute Force):
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ Indikator                          │ Beobachtet im Flow                     │
+├────────────────────────────────────┼────────────────────────────────────────┤
+│ L7_PROTO HTTP                      │ ✓ L7_PROTO: 7.0 (HTTP)                 │
+│ L4_DST_PORT 80/443                 │ ✓ L4_DST_PORT: 80                      │
+│ Hohe Flow Rate                     │ ✓ 112.110 Flows zwischen IP-Paar       │
+│ Kurze Flows                        │ ✓ DURATION_IN/OUT: 42 ms               │
+│ Ein SRC zu Web App                 │ ✓ Konsistente Quell-IP                 │
+│ NUM_PKTS_256_TO_512_BYTES          │ ✓ 1 Paket in diesem Bereich            │
+│ TCP_FLAGS für Auth Attempts        │ ✓ TCP_FLAGS: 219 (PSH/ACK)             │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+================================================================================
+                              RISIKOBEWERTUNG
+================================================================================
+
+Bedrohungsstufe:            HOCH
+Angriffskomplexität:        NIEDRIG (automatisierte Tool-basierte Attacke)
+Auswirkungspotenzial:       KRITISCH
+
+RISIKOFAKTOREN:
+• Quell-IP hat dokumentierte Angriffshistorie
+• Massive Anzahl von Verbindungsversuchen (112.110 Flows)
+• Ziel ist ein interner Webserver (Port 80)
+• AWS-basierte Infrastruktur ermöglicht hohe Skalierbarkeit
+• Keine Paketretransmissionen deuten auf professionellen Angriff
+
+================================================================================
+                        EMPFOHLENE GEGENMASSNAHMEN
+================================================================================
+
+SOFORTIGE MASSNAHMEN:
+1. IP-Adresse 18.218.115.60 auf der Firewall blockieren
+2. Alle betroffenen Benutzerkonten auf dem Zielserver überprüfen
+3. Authentifizierungslogs des Webservers analysieren
+4. Rate-Limiting für HTTP-Anfragen aktivieren
+
+MITTELFRISTIGE MASSNAHMEN:
+5. Web Application Firewall (WAF) implementieren
+6. Intrusion Prevention System (IPS) mit aktuellen Signaturen aktualisieren
+7. Account-Lockout-Policies nach fehlgeschlagenen Login-Versuchen einführen
+8. Multi-Faktor-Authentifizierung (MFA) für alle Benutzerkonten aktivieren
+
+LANGFRISTIGE MASSNAHMEN:
+9. AWS VPC Security Groups verschärfen
+10. Kontinuierliches Threat Intelligence Monitoring implementieren
+11. Penetrationstests durchführen
+12. Security Awareness Training für Mitarbeiter
+
+================================================================================
+                                   FAZIT
+================================================================================
+
+Die forensische Analyse bestätigt eindeutig, dass es sich bei dem untersuchten
+NetFlow-Datensatz um bösartigen Netzwerkverkehr handelt. Die Kombination aus:
+
+   • Bekannter bösartiger Quell-IP mit dokumentierter Angriffshistorie
+   • Über 112.000 Verbindungsversuche zum gleichen Ziel
+   • HTTP-Verkehr zu Port 80 mit charakteristischen Brute-Force-Mustern
+   • Abnormale TCP-Flag-Kombinationen
+   • Kurze, repetitive Verbindungen
+
+...bildet eine überzeugende Beweislage für einen Web Brute-Force-Angriff.
+Die Angriffe stammen aus AWS-Infrastruktur, was auf einen professionell
+durchgeführten automatisierten Angriff hindeutet.
+
+Sofortige Abwehrmaßnahmen werden dringend empfohlen.
+
+================================================================================
+                      ANALYSIERTE ROHDATEN (ORIGINAL)
+================================================================================
+
+netflow_id: 8746970
+IPV4_SRC_ADDR: 18.218.115.60
+L4_SRC_PORT: 59880
+IPV4_DST_ADDR: 172.31.69.28
+L4_DST_PORT: 80
+PROTOCOL: 6
+L7_PROTO: 7.0
+IN_BYTES: 503
+IN_PKTS: 5
+OUT_BYTES: 1147
+OUT_PKTS: 5
+TCP_FLAGS: 219
+CLIENT_TCP_FLAGS: 219
+SERVER_TCP_FLAGS: 27
+FLOW_DURATION_MILLISECONDS: 4294925
+DURATION_IN: 42
+DURATION_OUT: 42
+MIN_TTL: 127
+MAX_TTL: 127
+LONGEST_FLOW_PKT: 975
+SHORTEST_FLOW_PKT: 40
+MIN_IP_PKT_LEN: 40
+MAX_IP_PKT_LEN: 975
+SRC_TO_DST_SECOND_BYTES: 503.0
+DST_TO_SRC_SECOND_BYTES: 1147.0
+RETRANSMITTED_IN_BYTES: 0
+RETRANSMITTED_IN_PKTS: 0
+RETRANSMITTED_OUT_BYTES: 0
+RETRANSMITTED_OUT_PKTS: 0
+SRC_TO_DST_AVG_THROUGHPUT: 88000
+DST_TO_SRC_AVG_THROUGHPUT: 208000
+NUM_PKTS_UP_TO_128_BYTES: 8
+NUM_PKTS_128_TO_256_BYTES: 0
+NUM_PKTS_256_TO_512_BYTES: 1
+NUM_PKTS_512_TO_1024_BYTES: 1
+NUM_PKTS_1024_TO_1514_BYTES: 0
+TCP_WIN_MAX_IN: 65535
+TCP_WIN_MAX_OUT: 26883
+ICMP_TYPE: 0
+ICMP_IPV4_TYPE: 0
+DNS_QUERY_ID: 0
+DNS_QUERY_TYPE: 0
+DNS_TTL_ANSWER: 0
+FTP_COMMAND_RET_CODE: 0
+
+================================================================================
+                            ENDE DES BERICHTS
+================================================================================

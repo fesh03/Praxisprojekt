@@ -1,0 +1,213 @@
+================================================================================
+                    FORENSISCHE NETFLOW-ANALYSE - SICHERHEITSBERICHT
+================================================================================
+
+Bericht-ID:         299
+Analysedatum:       24. Januar 2026
+Analyst:            Automatisierte Forensische Netzwerkanalyse
+
+================================================================================
+[KLASSIFIZIERUNG: BESTÄTIGT]
+================================================================================
+
+Die vom Network Intrusion Detection System (NIDS) vorgenommene Markierung als 
+bösartiger Netzwerkverkehr wird hiermit BESTÄTIGT.
+
+================================================================================
+                              BEWEISFÜHRUNG
+================================================================================
+
+1. GEOLOKALISIERUNG DER BETEILIGTEN IP-ADRESSEN
+-------------------------------------------------------------------------------
+   Quell-IP (172.31.69.17):
+   - Status: Private/Interne IP-Adresse (RFC 1918)
+   - Bedeutung: Interner Host im lokalen Netzwerk
+
+   Ziel-IP (18.219.211.138):
+   - Land: United States
+   - Region: Ohio
+   - Stadt: Dublin
+   - ISP: Amazon.com, Inc.
+   - AS: AS16509 Amazon.com, Inc.
+   - Koordinaten: 40.0992, -83.1141
+   - Bedeutung: AWS-gehosteter Server (potenzieller C&C-Server)
+
+2. BEDROHUNGSINFORMATIONEN (THREAT INTELLIGENCE)
+-------------------------------------------------------------------------------
+   Quell-IP (172.31.69.17):
+   - Bekannte Bedrohungen: Bot, Infiltration
+   - Bewertung: KRITISCH - Interner Host ist kompromittiert
+
+   Ziel-IP (18.219.211.138):
+   - Bekannte Bedrohungen: Bot
+   - Bewertung: HOCH - Bekannter Command & Control Server
+
+3. HISTORISCHE KOMMUNIKATIONSANALYSE
+-------------------------------------------------------------------------------
+   Anzahl gefundener Flows zwischen den IPs: 15.321 Verbindungen
+   
+   Kritische Beobachtungen:
+   - Extrem hohe Anzahl identischer Kommunikationsmuster
+   - Alle Flows zeigen identische Charakteristiken:
+     * Gleicher Zielport: 8080
+     * Identische Byte-Mengen: IN_BYTES=538, OUT_BYTES=341
+     * Identische Paketanzahl: IN_PKTS=5, OUT_PKTS=5
+     * Identische TCP-Flags: 219 (Client), 27 (Server)
+     * Variierende Quellports (ephemeral ports)
+   
+   - Diese Gleichförmigkeit deutet auf automatisierte Bot-Kommunikation hin
+
+4. PROTOKOLLANALYSE
+-------------------------------------------------------------------------------
+   Layer 4 Protokoll: TCP (Transmission Control Protocol)
+   Layer 7 Protokoll: 131.7 (HTTP-basiertes Anwendungsprotokoll)
+   Zielport: 8080 (Alternativer HTTP-Port, häufig für C&C genutzt)
+
+5. TCP-FLAG-ANALYSE
+-------------------------------------------------------------------------------
+   TCP_FLAGS: 219 (binär: 11011011)
+   - SYN: Gesetzt
+   - ACK: Gesetzt
+   - PSH: Gesetzt
+   - FIN: Gesetzt
+   - RST: Gesetzt
+   - URG: Gesetzt
+   
+   Interpretation: Ungewöhnliche Kombination aller wichtigen TCP-Flags in 
+   einem einzelnen Flow deutet auf anomale Verbindungsverhalten hin.
+
+6. TRAFFIC-CHARAKTERISTIKEN
+-------------------------------------------------------------------------------
+   - Flow-Dauer: 0 ms (FLOW_DURATION_MILLISECONDS: 0)
+   - Keine Retransmissions (RETRANSMITTED_*: 0)
+   - Konstanter TTL: MIN_TTL=128, MAX_TTL=128 (keine Varianz)
+   - Überwiegend kleine Pakete: 8 von 10 Paketen ≤ 128 Bytes
+   - Hoher Durchsatz: SRC_TO_DST_AVG_THROUGHPUT: 4.304.000 bps
+
+================================================================================
+                         KATEGORISIERUNG DER BEDROHUNG
+================================================================================
+
+Primäre Klassifizierung: BOTNET COMMAND & CONTROL (C&C) KOMMUNIKATION
+
+Übereinstimmende Indikatoren mit Signatur "botnet_c_n_c":
+   [✓] Regelmäßige kleine Flows zu C&C IP
+   [✓] Niedrige IN_BYTES/OUT_BYTES (538/341 Bytes)
+   [✓] Spezifischer L4_DST_PORT für C&C (8080)
+   [✓] Periodische, identische Kommunikationsmuster
+   [✓] L7_PROTO HTTP für C&C-Kommunikation
+   [✓] Hohe Anzahl wiederholter Verbindungen (15.321 Flows)
+
+Sekundäre Klassifizierung: INFILTRATION
+
+Übereinstimmende Indikatoren mit Signatur "infiltration":
+   [✓] Kommunikation von internem Host zu externem Server
+   [✓] C&C-ähnliche Patterns
+   [✓] Variierende Quellports bei konstantem Zielport
+
+================================================================================
+                              RISIKOBEWERTUNG
+================================================================================
+
+Gesamtrisiko: ██████████ KRITISCH (10/10)
+
+Einzelbewertungen:
+   - Vertraulichkeit:     HOCH    - Potenzielle Datenexfiltration
+   - Integrität:          KRITISCH - Host bereits kompromittiert
+   - Verfügbarkeit:       MITTEL  - Bot kann für DDoS aktiviert werden
+   - Laterale Bewegung:   HOCH    - Gefahr der Ausbreitung im Netzwerk
+
+================================================================================
+                         EMPFOHLENE GEGENMASSNAHMEN
+================================================================================
+
+SOFORTMASSNAHMEN (Priorität: KRITISCH):
+   1. Isolierung des kompromittierten Hosts (172.31.69.17) vom Netzwerk
+   2. Blockierung der C&C-IP (18.219.211.138) an der Firewall
+   3. Blockierung von Port 8080 für ausgehenden Traffic (falls nicht benötigt)
+
+FORENSISCHE ANALYSE:
+   4. Vollständige forensische Untersuchung des Hosts 172.31.69.17
+   5. Analyse aller 15.321 Flows für Zeitachsen-Rekonstruktion
+   6. Identifikation des initialen Infektionsvektors
+
+NETZWERK-HÄRTUNG:
+   7. Überprüfung aller internen Hosts auf ähnliche Kommunikationsmuster
+   8. Implementierung von Egress-Filterung
+   9. Aktualisierung der NIDS-Signaturen
+
+LANGFRISTIGE MASSNAHMEN:
+   10. Implementierung von Network Behavior Analysis (NBA)
+   11. Einrichtung von Threat Intelligence Feeds
+   12. Regelmäßige Penetrationstests
+
+================================================================================
+                                   FAZIT
+================================================================================
+
+Die forensische Analyse bestätigt eindeutig, dass es sich bei dem untersuchten 
+NetFlow-Eintrag (ID: 299) um bösartigen Netzwerkverkehr handelt. 
+
+Der interne Host 172.31.69.17 ist mit hoher Wahrscheinlichkeit Teil eines 
+Botnets und kommuniziert aktiv mit einem Command & Control Server 
+(18.219.211.138), der in der AWS-Infrastruktur in Ohio, USA gehostet wird.
+
+Die außergewöhnlich hohe Anzahl identischer Kommunikationsmuster (15.321 Flows) 
+mit konsistenten Charakteristiken (gleiche Byte-Mengen, Paketanzahlen und 
+TCP-Flags) ist ein eindeutiger Indikator für automatisierte Bot-Aktivität.
+
+Sofortige Maßnahmen zur Eindämmung und Beseitigung der Bedrohung sind 
+dringend erforderlich.
+
+================================================================================
+                    ANALYSIERTE ROHDATEN (ORIGINAL)
+================================================================================
+
+netflow_id: 299
+IPV4_SRC_ADDR: 172.31.69.17
+L4_SRC_PORT: 59627
+IPV4_DST_ADDR: 18.219.211.138
+L4_DST_PORT: 8080
+PROTOCOL: 6
+L7_PROTO: 131.7
+IN_BYTES: 538
+IN_PKTS: 5
+OUT_BYTES: 341
+OUT_PKTS: 5
+TCP_FLAGS: 219
+CLIENT_TCP_FLAGS: 219
+SERVER_TCP_FLAGS: 27
+FLOW_DURATION_MILLISECONDS: 0
+DURATION_IN: 0
+DURATION_OUT: 0
+MIN_TTL: 128
+MAX_TTL: 128
+LONGEST_FLOW_PKT: 366
+SHORTEST_FLOW_PKT: 40
+MIN_IP_PKT_LEN: 40
+MAX_IP_PKT_LEN: 366
+SRC_TO_DST_SECOND_BYTES: 538.0
+DST_TO_SRC_SECOND_BYTES: 341.0
+RETRANSMITTED_IN_BYTES: 0
+RETRANSMITTED_IN_PKTS: 0
+RETRANSMITTED_OUT_BYTES: 0
+RETRANSMITTED_OUT_PKTS: 0
+SRC_TO_DST_AVG_THROUGHPUT: 4304000
+DST_TO_SRC_AVG_THROUGHPUT: 2728000
+NUM_PKTS_UP_TO_128_BYTES: 8
+NUM_PKTS_128_TO_256_BYTES: 1
+NUM_PKTS_256_TO_512_BYTES: 1
+NUM_PKTS_512_TO_1024_BYTES: 0
+NUM_PKTS_1024_TO_1514_BYTES: 0
+TCP_WIN_MAX_IN: 8192
+TCP_WIN_MAX_OUT: 26883
+ICMP_TYPE: 0
+ICMP_IPV4_TYPE: 0
+DNS_QUERY_ID: 0
+DNS_QUERY_TYPE: 0
+DNS_TTL_ANSWER: 0
+FTP_COMMAND_RET_CODE: 0
+
+================================================================================
+                            ENDE DES BERICHTS
+================================================================================

@@ -1,0 +1,215 @@
+================================================================================
+              FORENSISCHE NETFLOW-ANALYSE - SICHERHEITSBERICHT
+================================================================================
+
+Bericht-ID:         6635322
+Analysedatum:       24. Januar 2026
+Analyst:            Forensischer Netzwerk-Sicherheitsanalyst (KI-gestützt)
+
+================================================================================
+                    [KLASSIFIZIERUNG: BESTÄTIGT]
+================================================================================
+
+Die vom NIDS vorgenommene Klassifizierung als bösartiger Netzwerkverkehr wird
+hiermit BESTÄTIGT. Der analysierte Flow zeigt eindeutige Merkmale einer
+Infiltration innerhalb des internen Netzwerks.
+
+================================================================================
+                           BEWEISFÜHRUNG
+================================================================================
+
+1. NETZWERK-KONTEXT
+-------------------
+   • Quell-IP:    172.31.69.13 (Privater IP-Bereich, internes Netzwerk)
+   • Ziel-IP:     172.31.69.5  (Privater IP-Bereich, internes Netzwerk)
+   • Protokoll:   TCP (Transmission Control Protocol), ID: 6
+   • Zielport:    445 (SMB - Server Message Block / Windows-Dateifreigabe)
+   • Quellport:   51087 (Ephemerer Port)
+
+2. BEDROHUNGSINTELLIGENZ
+------------------------
+   Die Abfrage der Bedrohungsdatenbank ergab folgende Ergebnisse:
+   • Quell-IP (172.31.69.13): Markiert für "Infiltration" (ausgehende Angriffe)
+   • Ziel-IP (172.31.69.5):   Markiert für "Infiltration" (eingehende Angriffe)
+   
+   Beide IP-Adressen sind bereits im Kontext von Infiltrationsaktivitäten
+   bekannt, was die Verdachtsmomente erheblich verstärkt.
+
+3. HISTORISCHE KOMMUNIKATIONSANALYSE
+------------------------------------
+   Die Analyse der historischen Kommunikation zwischen beiden Hosts ergab:
+   • Gesamtzahl gefundener Flows: 2.748 Einträge
+   • Auffälliges Muster: Wiederholte Einzelpaket-Verbindungsversuche (SYN)
+     auf verschiedene Ports (9999, 3476, 5003, 9071, 5500)
+   • TCP_FLAGS: 2 (nur SYN-Flag) - typisches Reconnaissance-Muster
+   • Keine Server-Antworten (OUT_BYTES: 0, OUT_PKTS: 0) bei historischen Flows
+   
+   Diese Muster deuten auf vorherige Port-Scanning-Aktivitäten hin, die
+   typischerweise einer Infiltration vorausgehen.
+
+4. TECHNISCHE FLOW-ANALYSE
+--------------------------
+   Der aktuelle Flow weist folgende Charakteristiken auf:
+   
+   a) Bidirektionale Kommunikation (etablierte Verbindung):
+      • IN_BYTES:  651 Bytes (9 Pakete)
+      • OUT_BYTES: 463 Bytes (6 Pakete)
+      → Im Gegensatz zu früheren Scan-Versuchen wurde hier eine vollständige
+        TCP-Verbindung etabliert.
+   
+   b) TCP-Flags-Analyse:
+      • TCP_FLAGS gesamt:    223 (binär: 11011111)
+      • CLIENT_TCP_FLAGS:    219 (binär: 11011011)
+      • SERVER_TCP_FLAGS:    94  (binär: 01011110)
+      → Die Kombination zeigt: FIN, SYN, RST, PSH, ACK, URG-Flags wurden
+        gesetzt. Dies deutet auf eine komplette Session mit Datenübertragung
+        und ordnungsgemäßem Verbindungsabbau hin.
+   
+   c) SMB-Protokoll (Port 445):
+      • SMB ist ein primäres Ziel für laterale Bewegung innerhalb von
+        Netzwerken
+      • Ermöglicht Zugriff auf Dateifreigaben, Druckdienste und
+        Remote-Administration
+      • Historisch ein bevorzugter Angriffsvektor (EternalBlue, WannaCry, etc.)
+   
+   d) Zeitliche Charakteristiken:
+      • FLOW_DURATION_MILLISECONDS: 0
+      • Sehr schnelle Kommunikation mit hohem Durchsatz:
+        - SRC_TO_DST: 5.208.000 Bits/s
+        - DST_TO_SRC: 3.704.000 Bits/s
+   
+   e) TTL-Werte:
+      • MIN_TTL: 128, MAX_TTL: 128
+      → Konsistenter TTL-Wert deutet auf direkten Hop hin (typisch für
+        internes Netzwerk, Windows-System als Quelle)
+
+================================================================================
+                      KATEGORISIERUNG DER BEDROHUNG
+================================================================================
+
+Angriffstyp:        INFILTRATION
+Unterkategorie:     Laterale Bewegung über SMB
+
+Zutreffende Indikatoren aus der Signatur-Datenbank:
+   ✓ Hohe Anzahl interner Flows (2.748 historische Verbindungen)
+   ✓ Variierende Ports (historische Scans auf diverse Ports)
+   ✓ Ungewöhnliche L7_PROTO Zugriffe (L7_PROTO: 0.0 - nicht identifiziert)
+   ✓ C&C-ähnliche Patterns (bidirektionale kleine Datenpakete)
+
+Angriffsphasen-Einordnung:
+   1. [ABGESCHLOSSEN] Reconnaissance: Port-Scanning (historische Flows)
+   2. [AKTUELL]       Exploitation: SMB-Zugriff auf Port 445
+   3. [MÖGLICH]       Laterale Bewegung: Zugriff auf weitere Systeme
+
+================================================================================
+                          RISIKOBEWERTUNG
+================================================================================
+
+Risikostufe:        HOCH
+
+Begründung:
+   • Erfolgreiche Etablierung einer SMB-Verbindung nach vorherigen
+     Scanning-Aktivitäten
+   • Interne Kommunikation zwischen zwei kompromittierten/verdächtigen Hosts
+   • SMB als bekannter Angriffsvektor für Ransomware und Datenexfiltration
+   • Bidirektionaler Datenfluss deutet auf aktive Datenübertragung hin
+
+Potenzielle Auswirkungen:
+   • Unbefugter Zugriff auf Dateifreigaben
+   • Credential Harvesting über SMB-Authentifizierung
+   • Vorbereitung für weitere laterale Bewegung im Netzwerk
+   • Mögliche Datenexfiltration oder Ransomware-Deployment
+
+================================================================================
+                      EMPFOHLENE GEGENMASSNAHMEN
+================================================================================
+
+SOFORTMASSNAHMEN (DRINGEND):
+   1. Isolierung beider Hosts (172.31.69.13 und 172.31.69.5) vom Netzwerk
+   2. Sperrung des SMB-Verkehrs (Port 445, 139) zwischen nicht autorisierten
+      Hosts
+   3. Sicherung von Logdateien und forensischen Artefakten
+
+KURZFRISTIGE MASSNAHMEN:
+   4. Forensische Analyse beider betroffener Systeme
+   5. Überprüfung der SMB-Freigabeberechtigungen im gesamten Netzwerk
+   6. Analyse der übertragenen Daten (falls möglich durch Paketerfassung)
+   7. Passwort-Reset für alle Accounts, die auf den betroffenen Systemen
+      aktiv waren
+
+LANGFRISTIGE MASSNAHMEN:
+   8. Implementierung von SMB-Signing (obligatorisch)
+   9. Segmentierung des internen Netzwerks
+  10. Einführung von Zero-Trust-Prinzipien für interne Kommunikation
+  11. Regelmäßige Vulnerability-Scans für SMB-bezogene Schwachstellen
+
+================================================================================
+                              FAZIT
+================================================================================
+
+Der analysierte NetFlow-Eintrag (ID: 6635322) zeigt eindeutige Merkmale einer
+aktiven Infiltration innerhalb des internen Netzwerks. Die Kombination aus:
+
+   • Bekannten Bedrohungs-Markierungen für beide IP-Adressen
+   • Umfangreicher historischer Scanning-Aktivität (2.748 Flows)
+   • Erfolgreicher SMB-Verbindung nach vorherigen Reconnaissance-Versuchen
+   • Bidirektionalem Datenfluss über einen sensiblen Dienst
+
+...lässt keinen Zweifel an der bösartigen Natur dieses Netzwerkverkehrs.
+
+Die NIDS-Klassifizierung wird vollständig BESTÄTIGT.
+
+Sofortige Incident-Response-Maßnahmen werden dringend empfohlen.
+
+================================================================================
+                    ANALYSIERTE ROHDATEN (ORIGINAL)
+================================================================================
+
+netflow_id: 6635322
+IPV4_SRC_ADDR: 172.31.69.13
+L4_SRC_PORT: 51087
+IPV4_DST_ADDR: 172.31.69.5
+L4_DST_PORT: 445
+PROTOCOL: 6
+L7_PROTO: 0.0
+IN_BYTES: 651
+IN_PKTS: 9
+OUT_BYTES: 463
+OUT_PKTS: 6
+TCP_FLAGS: 223
+CLIENT_TCP_FLAGS: 219
+SERVER_TCP_FLAGS: 94
+FLOW_DURATION_MILLISECONDS: 0
+DURATION_IN: 0
+DURATION_OUT: 0
+MIN_TTL: 128
+MAX_TTL: 128
+LONGEST_FLOW_PKT: 179
+SHORTEST_FLOW_PKT: 40
+MIN_IP_PKT_LEN: 40
+MAX_IP_PKT_LEN: 179
+SRC_TO_DST_SECOND_BYTES: 651.0
+DST_TO_SRC_SECOND_BYTES: 463.0
+RETRANSMITTED_IN_BYTES: 0
+RETRANSMITTED_IN_PKTS: 0
+RETRANSMITTED_OUT_BYTES: 0
+RETRANSMITTED_OUT_PKTS: 0
+SRC_TO_DST_AVG_THROUGHPUT: 5208000
+DST_TO_SRC_AVG_THROUGHPUT: 3704000
+NUM_PKTS_UP_TO_128_BYTES: 13
+NUM_PKTS_128_TO_256_BYTES: 2
+NUM_PKTS_256_TO_512_BYTES: 0
+NUM_PKTS_512_TO_1024_BYTES: 0
+NUM_PKTS_1024_TO_1514_BYTES: 0
+TCP_WIN_MAX_IN: 8192
+TCP_WIN_MAX_OUT: 8192
+ICMP_TYPE: 0
+ICMP_IPV4_TYPE: 0
+DNS_QUERY_ID: 0
+DNS_QUERY_TYPE: 0
+DNS_TTL_ANSWER: 0
+FTP_COMMAND_RET_CODE: 0
+
+================================================================================
+                          ENDE DES BERICHTS
+================================================================================

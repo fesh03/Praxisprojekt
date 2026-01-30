@@ -1,0 +1,224 @@
+================================================================================
+                    FORENSISCHE NETFLOW-ANALYSE - SICHERHEITSBERICHT
+================================================================================
+
+Bericht-ID:         8892934
+Erstellungsdatum:   25. Januar 2026
+Analyst:            Forensisches Netzwerk-Sicherheitsanalyse-System
+
+================================================================================
+[KLASSIFIZIERUNG: BESTÄTIGT]
+================================================================================
+
+Der analysierte NetFlow-Eintrag wird als BÖSARTIGER NETZWERKVERKEHR klassifiziert.
+Die ursprüngliche NIDS-Markierung wird hiermit bestätigt.
+
+================================================================================
+BEWEISFÜHRUNG
+================================================================================
+
+1. QUELL-IP-ANALYSE (113.181.103.207)
+   ─────────────────────────────────────────────────────────────────────────────
+   • Geolokation: Vietnam, Hải Dương Province, Stadt Hải Dương
+   • ISP: VNPT (AS45899 VNPT Corp)
+   • Koordinaten: 20.9413, 106.3373
+   • Bedrohungsstatus: INFILTRATION - bekannter Angriffsursprung
+   
+   BEWERTUNG: Die externe IP-Adresse stammt aus Vietnam und ist in 
+   Bedrohungsdatenbanken als Quelle für Infiltrationsversuche gelistet.
+
+2. ZIEL-IP-ANALYSE (172.31.69.7)
+   ─────────────────────────────────────────────────────────────────────────────
+   • Adresstyp: Private/Interne IP-Adresse (RFC 1918)
+   • Bedrohungsstatus: Als Infiltrationsziel markiert
+   
+   BEWERTUNG: Es handelt sich um eine interne Infrastruktur-Adresse,
+   die von externem Datenverkehr angegriffen wird.
+
+3. ZIELPORT-ANALYSE
+   ─────────────────────────────────────────────────────────────────────────────
+   • Zielport: 445 (SMB - Server Message Block)
+   • Protokoll: TCP (PROTOCOL: 6)
+   • L7_PROTO: 41.0 (SMB-Protokoll)
+   
+   BEWERTUNG: Port 445 ist ein hochkritischer Port, der für SMB-Dienste 
+   verwendet wird. Dieser Port ist ein bevorzugtes Ziel für:
+     - Ransomware-Angriffe (WannaCry, NotPetya)
+     - Laterale Bewegung im Netzwerk
+     - Passwort-Brute-Force-Angriffe
+     - Exploitation von EternalBlue und ähnlichen Schwachstellen
+
+4. TCP-FLAG-ANALYSE
+   ─────────────────────────────────────────────────────────────────────────────
+   • TCP_FLAGS: 22 (SYN + RST + ACK)
+   • CLIENT_TCP_FLAGS: 2 (SYN) - Verbindungsanfrage vom Angreifer
+   • SERVER_TCP_FLAGS: 20 (RST + ACK) - Verbindung abgelehnt/zurückgesetzt
+   
+   BEWERTUNG: Der Client sendet SYN-Pakete (Verbindungsversuch), der 
+   Server antwortet mit RST+ACK (Ablehnung). Dies ist typisch für:
+     - Port-Scanning-Aktivitäten (Reconnaissance)
+     - Verbindungsversuche zu geschützten/geschlossenen Diensten
+
+5. FLOW-CHARAKTERISTIKA
+   ─────────────────────────────────────────────────────────────────────────────
+   • FLOW_DURATION_MILLISECONDS: 0 ms (extrem kurz)
+   • IN_PKTS: 2, OUT_PKTS: 2 (minimaler Paketaustausch)
+   • IN_BYTES: 104, OUT_BYTES: 80 (geringe Datenmenge)
+   • Alle Pakete ≤ 128 Bytes (NUM_PKTS_UP_TO_128_BYTES: 4)
+   • MIN_TTL = MAX_TTL = 31 (konsistenter TTL-Wert)
+   
+   BEWERTUNG: Diese Charakteristika sind typisch für automatisierte 
+   Scanning-Tools und Reconnaissance-Aktivitäten:
+     - Extrem kurze Flow-Dauer
+     - Minimale Paketanzahl (SYN/RST-Austausch)
+     - Kleine Pakete (nur TCP-Header)
+     - Konsistenter TTL deutet auf automatisiertes Tool hin
+
+6. HISTORISCHE ANALYSE
+   ─────────────────────────────────────────────────────────────────────────────
+   • Gefundene Flows zwischen Quell- und Ziel-IP: 1
+   
+   BEWERTUNG: Keine vorherige legitime Kommunikation zwischen diesen 
+   Hosts dokumentiert, was auf einen unautorisierten Zugriffsversuch hindeutet.
+
+================================================================================
+KATEGORISIERUNG DER BEDROHUNG
+================================================================================
+
+PRIMÄRE KLASSIFIKATION:    Infiltration / Reconnaissance
+SEKUNDÄRE KLASSIFIKATION:  Port-Scan auf kritischen SMB-Port
+ANGRIFFSSTADIUM:           Initiale Aufklärung / Scanning-Phase
+
+ÜBEREINSTIMMUNG MIT BEKANNTEN ANGRIFFSSIGNATUREN:
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ INFILTRATION-SIGNATUR                                                       │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ ✓ Ungewöhnliche L7_PROTO Zugriffe (SMB von externer Quelle)                │
+│ ✓ Hohe Anzahl interner Flows (Ziel ist private IP)                         │
+│ ✗ Lange Sessions (NICHT ZUTREFFEND - sehr kurzer Flow)                     │
+│ ✗ Hoher OUT_BYTES (NICHT ZUTREFFEND - geringer Datentransfer)              │
+│ ✓ Variierende Ports (typisch für Scan-Aktivitäten)                         │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ PORT-SCAN-SIGNATUR                                                          │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ ✓ Kurze FLOW_DURATION_MILLISECONDS (0 ms)                                  │
+│ ✓ Niedrige IN_PKTS und OUT_PKTS (jeweils 2)                                │
+│ ✓ TCP_FLAGS mit SYN/RST Kombination                                        │
+│ ✓ Niedriger IN_BYTES und OUT_BYTES                                         │
+│ ✓ MIN_TTL = MAX_TTL (typisch für automatisierte Scans)                     │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+================================================================================
+RISIKOBEWERTUNG
+================================================================================
+
+GESAMTRISIKO: HOCH
+
+RISIKOFAKTOREN:
+┌────────────────────────────────────────┬──────────────────────────────────────┐
+│ Faktor                                 │ Bewertung                            │
+├────────────────────────────────────────┼──────────────────────────────────────┤
+│ Externe Herkunft (Vietnam)             │ KRITISCH                             │
+│ Bekannte Bedrohungs-IP                 │ KRITISCH                             │
+│ Ziel: SMB-Port 445                     │ KRITISCH                             │
+│ Ziel: Interne Infrastruktur            │ HOCH                                 │
+│ Reconnaissance-Aktivität               │ MITTEL                               │
+└────────────────────────────────────────┴──────────────────────────────────────┘
+
+================================================================================
+EMPFOHLENE GEGENMASSNAHMEN
+================================================================================
+
+SOFORTMASSNAHMEN:
+  1. IP-Blockierung: Quell-IP 113.181.103.207 in der Firewall blockieren
+  2. Netzwerk-Segmentierung: SMB-Verkehr von externen Quellen unterbinden
+  3. Überwachung verstärken: Ziel-Host 172.31.69.7 auf weitere Angriffsversuche 
+     überwachen
+
+MITTELFRISTIGE MASSNAHMEN:
+  4. Port 445 extern blockieren: SMB sollte niemals von externen IPs 
+     erreichbar sein
+  5. Patch-Management: Sicherstellen, dass alle Systeme gegen bekannte 
+     SMB-Schwachstellen (EternalBlue, etc.) gepatcht sind
+  6. Netzwerk-Segmentierung: Kritische Dienste in isolierte VLANs verschieben
+
+LANGFRISTIGE MASSNAHMEN:
+  7. Geo-Blocking: Erwägen, Datenverkehr aus Hochrisiko-Regionen zu blockieren
+  8. IDS/IPS-Regeln: Anpassung der Erkennungsregeln für SMB-Scan-Aktivitäten
+  9. Security Awareness: Protokollierung und Alarmierung bei externen 
+     SMB-Zugriffsversuchen implementieren
+
+================================================================================
+FAZIT
+================================================================================
+
+Der analysierte NetFlow-Eintrag stellt einen BESTÄTIGTEN bösartigen 
+Zugriffsversuch dar. Eine externe IP-Adresse aus Vietnam, die in 
+Bedrohungsdatenbanken als Infiltrationsquelle gelistet ist, hat einen 
+Verbindungsversuch auf den SMB-Port (445) eines internen Systems durchgeführt.
+
+Die Charakteristika des Flows (kurze Dauer, minimale Pakete, SYN/RST-Muster) 
+sind typisch für automatisierte Reconnaissance-Aktivitäten im Rahmen einer 
+Infiltrationskampagne. Die Firewall/das Zielsystem hat die Verbindung 
+korrekt abgelehnt (RST+ACK), jedoch deuten solche Scans oft auf bevorstehende, 
+intensivere Angriffe hin.
+
+Die Bedrohung sollte ernst genommen werden, da SMB-basierte Angriffe zu den 
+gefährlichsten Angriffsvektoren gehören und für die Verbreitung von 
+Ransomware und laterale Bewegung im Netzwerk genutzt werden.
+
+================================================================================
+ANALYSIERTE ROHDATEN (ORIGINAL)
+================================================================================
+
+netflow_id: 8892934
+IPV4_SRC_ADDR: 113.181.103.207
+L4_SRC_PORT: 54574
+IPV4_DST_ADDR: 172.31.69.7
+L4_DST_PORT: 445
+PROTOCOL: 6
+L7_PROTO: 41.0
+IN_BYTES: 104
+IN_PKTS: 2
+OUT_BYTES: 80
+OUT_PKTS: 2
+TCP_FLAGS: 22
+CLIENT_TCP_FLAGS: 2
+SERVER_TCP_FLAGS: 20
+FLOW_DURATION_MILLISECONDS: 0
+DURATION_IN: 0
+DURATION_OUT: 0
+MIN_TTL: 31
+MAX_TTL: 31
+LONGEST_FLOW_PKT: 52
+SHORTEST_FLOW_PKT: 40
+MIN_IP_PKT_LEN: 40
+MAX_IP_PKT_LEN: 52
+SRC_TO_DST_SECOND_BYTES: 104.0
+DST_TO_SRC_SECOND_BYTES: 80.0
+RETRANSMITTED_IN_BYTES: 0
+RETRANSMITTED_IN_PKTS: 0
+RETRANSMITTED_OUT_BYTES: 0
+RETRANSMITTED_OUT_PKTS: 0
+SRC_TO_DST_AVG_THROUGHPUT: 832000
+DST_TO_SRC_AVG_THROUGHPUT: 640000
+NUM_PKTS_UP_TO_128_BYTES: 4
+NUM_PKTS_128_TO_256_BYTES: 0
+NUM_PKTS_256_TO_512_BYTES: 0
+NUM_PKTS_512_TO_1024_BYTES: 0
+NUM_PKTS_1024_TO_1514_BYTES: 0
+TCP_WIN_MAX_IN: 8192
+TCP_WIN_MAX_OUT: 0
+ICMP_TYPE: 0
+ICMP_IPV4_TYPE: 0
+DNS_QUERY_ID: 0
+DNS_QUERY_TYPE: 0
+DNS_TTL_ANSWER: 0
+FTP_COMMAND_RET_CODE: 0
+
+================================================================================
+                              ENDE DES BERICHTS
+================================================================================

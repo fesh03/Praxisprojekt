@@ -1,0 +1,195 @@
+================================================================================
+           FORENSISCHE NETFLOW-ANALYSE - SICHERHEITSBERICHT
+================================================================================
+
+Erstellungsdatum: 24. Januar 2026
+Analyst: KI-gestützte Netzwerkforensik
+NetFlow-ID: 1
+
+================================================================================
+                    [KLASSIFIZIERUNG: BESTÄTIGT]
+================================================================================
+
+ZUSAMMENFASSUNG DES URTEILS
+--------------------------------------------------------------------------------
+Der analysierte NetFlow-Eintrag (netflow_id: 1) wird als BÖSARTIGER 
+NETZWERKVERKEHR eingestuft. Es handelt sich mit hoher Wahrscheinlichkeit 
+um einen SSH-BRUTE-FORCE-ANGRIFF.
+
+================================================================================
+                         BEWEISFÜHRUNG
+================================================================================
+
+1. QUELL- UND ZIELINFORMATIONEN
+--------------------------------------------------------------------------------
+Attribut              | Wert                    | Bewertung
+----------------------|-------------------------|---------------------------
+Quell-IP              | 13.58.98.64             | Amazon AWS (Ohio, Dublin)
+Ziel-IP               | 172.31.69.25            | Private IP (RFC 1918)
+Ziel-Port             | 22                      | SSH-Dienst
+Protokoll             | TCP (6)                 | Standardprotokoll für SSH
+
+BEDROHUNGSINFORMATIONEN:
+- Die Quell-IP 13.58.98.64 ist in Threat-Intelligence-Datenbanken als 
+  bekannte Quelle von SSH-Bruteforce-Angriffen gelistet.
+- Die Ziel-IP 172.31.69.25 war bereits Ziel mehrerer Angriffstypen, 
+  darunter SSH-Bruteforce, DoS und DDoS-Attacken.
+
+2. FLOW-CHARAKTERISTIKEN
+--------------------------------------------------------------------------------
+Merkmal                        | Gemessener Wert | Indikator für SSH-Brute-Force
+-------------------------------|-----------------|------------------------------
+L4_DST_PORT                    | 22              | ✓ SSH-Standard-Port
+IN_PKTS                        | 23              | ✓ Typischer Bereich (11-51)
+OUT_PKTS                       | 21              | ✓ Symmetrische Kommunikation
+FLOW_DURATION_MILLISECONDS     | 0               | ✓ Extrem kurze Dauer
+NUM_PKTS_128_TO_256_BYTES      | 7               | ✓ Authentifizierungspakete
+PROTOCOL                       | 6 (TCP)         | ✓ Erwartetes Protokoll
+TCP_FLAGS                      | 27              | ✓ SYN, ACK, PSH, FIN
+
+3. HISTORISCHE ANALYSE
+--------------------------------------------------------------------------------
+KRITISCHER BEFUND: 94.979 separate Verbindungsversuche registriert!
+
+Von der IP 13.58.98.64 wurden nahezu 95.000 separate Verbindungsversuche 
+zum SSH-Dienst auf 172.31.69.25 dokumentiert.
+
+Alle historischen Flows zeigen identische Muster:
+  • Identischer Zielport (22)
+  • Wechselnde Quellports (typisch für automatisierte Tools)
+  • Nahezu identische Paketgrößen und -anzahlen
+  • FLOW_DURATION von 0 ms (Burst-Verbindungen)
+  • Konstante TCP-Window-Größen (IN: 26883, OUT: 26847)
+
+Diese Konsistenz deutet auf ein AUTOMATISIERTES ANGRIFFSWERKZEUG hin.
+
+4. TCP-FLAG-ANALYSE
+--------------------------------------------------------------------------------
+TCP_FLAGS-Wert: 27 (binär: 00011011)
+
+Zusammensetzung:
+  • FIN (1)  - Verbindungsbeendigung
+  • SYN (2)  - Verbindungsaufbau
+  • PSH (8)  - Datenübertragung
+  • ACK (16) - Bestätigung
+
+Diese Kombination ist typisch für SSH-Brute-Force-Angriffe, bei denen 
+nach jedem fehlgeschlagenen Login die Verbindung sofort beendet und 
+eine neue mit anderem Quellport aufgebaut wird.
+
+================================================================================
+                    KATEGORISIERUNG DER BEDROHUNG
+================================================================================
+
+Angriffstyp:     SSH Brute Force
+Kategorie:       Brute Force / Credential Stuffing
+
+ÜBEREINSTIMMUNG MIT SIGNATUR-INDIKATOREN:
+--------------------------------------------------------------------------------
+Indikator                      | Erwartet    | Beobachtet | Status
+-------------------------------|-------------|------------|--------
+L4_DST_PORT = 22               | ✓           | 22         | ERFÜLLT
+IN_PKTS: 11-51 pro Flow        | ✓           | 23         | ERFÜLLT
+Kurze FLOW_DURATION            | ✓           | 0 ms       | ERFÜLLT
+PROTOCOL = 6 (TCP)             | ✓           | 6          | ERFÜLLT
+Hohe Anzahl Flows              | ✓           | 94.979     | ERFÜLLT
+Ein SRC zu einem DST           | ✓           | Ja         | ERFÜLLT
+Hoher NUM_PKTS_128_TO_256_BYTES| ✓           | 7          | ERFÜLLT
+
+>>> ALLE 7 VON 7 INDIKATOREN ERFÜLLT <<<
+
+================================================================================
+                        RISIKOBEWERTUNG
+================================================================================
+
+Kategorie                | Bewertung
+-------------------------|------------------------------------------
+Schweregrad              | HOCH
+Konfidenz                | Sehr hoch (>95%)
+Angriffsstadium          | Aktiver Angriff
+Potenzielle Auswirkung   | Unbefugter Systemzugriff
+
+================================================================================
+                    EMPFOHLENE GEGENMASSNAHMEN
+================================================================================
+
+SOFORT:
+  → IP-Adresse 13.58.98.64 auf der Firewall blockieren
+
+KURZFRISTIG:
+  → Fail2Ban oder ähnliche Rate-Limiting-Mechanismen für SSH implementieren
+
+MITTELFRISTIG:
+  → SSH-Zugang auf Schlüsselauthentifizierung umstellen
+  → Password-Login deaktivieren
+
+LANGFRISTIG:
+  → SSH-Port auf Non-Standard-Port verlegen
+  → Zugriff auf VPN beschränken
+
+================================================================================
+                             FAZIT
+================================================================================
+
+Die NIDS-Klassifizierung wird BESTÄTIGT. 
+
+Der analysierte NetFlow-Eintrag ist Teil eines umfangreichen SSH-Brute-Force-
+Angriffs von einer AWS-gehosteten IP-Adresse auf einen internen Server. 
+
+Die extrem hohe Anzahl von fast 95.000 Verbindungsversuchen, die 
+charakteristischen Flow-Merkmale und die Übereinstimmung mit allen 
+Signatur-Indikatoren lassen keinen Zweifel an der bösartigen Natur 
+dieses Netzwerkverkehrs.
+
+================================================================================
+                    ANALYSIERTE ROHDATEN (ORIGINAL)
+================================================================================
+
+netflow_id: 1
+IPV4_SRC_ADDR: 13.58.98.64
+L4_SRC_PORT: 40894
+IPV4_DST_ADDR: 172.31.69.25
+L4_DST_PORT: 22
+PROTOCOL: 6
+L7_PROTO: 92.0
+IN_BYTES: 3164
+IN_PKTS: 23
+OUT_BYTES: 3765
+OUT_PKTS: 21
+TCP_FLAGS: 27
+CLIENT_TCP_FLAGS: 27
+SERVER_TCP_FLAGS: 27
+FLOW_DURATION_MILLISECONDS: 0
+DURATION_IN: 0
+DURATION_OUT: 0
+MIN_TTL: 63
+MAX_TTL: 63
+LONGEST_FLOW_PKT: 1028
+SHORTEST_FLOW_PKT: 52
+MIN_IP_PKT_LEN: 52
+MAX_IP_PKT_LEN: 1028
+SRC_TO_DST_SECOND_BYTES: 3164.0
+DST_TO_SRC_SECOND_BYTES: 3765.0
+RETRANSMITTED_IN_BYTES: 0
+RETRANSMITTED_IN_PKTS: 0
+RETRANSMITTED_OUT_BYTES: 0
+RETRANSMITTED_OUT_PKTS: 0
+SRC_TO_DST_AVG_THROUGHPUT: 25312000
+DST_TO_SRC_AVG_THROUGHPUT: 30120000
+NUM_PKTS_UP_TO_128_BYTES: 33
+NUM_PKTS_128_TO_256_BYTES: 7
+NUM_PKTS_256_TO_512_BYTES: 1
+NUM_PKTS_512_TO_1024_BYTES: 2
+NUM_PKTS_1024_TO_1514_BYTES: 1
+TCP_WIN_MAX_IN: 26883
+TCP_WIN_MAX_OUT: 26847
+ICMP_TYPE: 0
+ICMP_IPV4_TYPE: 0
+DNS_QUERY_ID: 0
+DNS_QUERY_TYPE: 0
+DNS_TTL_ANSWER: 0
+FTP_COMMAND_RET_CODE: 0
+
+================================================================================
+                         ENDE DES BERICHTS
+================================================================================

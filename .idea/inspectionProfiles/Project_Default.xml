@@ -1,0 +1,59 @@
+<component name="InspectionProjectProfileManager">
+  <profile version="1.0">
+    <option name="myName" value="Project Default" />
+    <inspection_tool class="PyPackageRequirementsInspection" enabled="true" level="WARNING" enabled_by_default="true">
+      <option name="ignoredPackages">
+        <list>
+          <option value="fastapi" />
+          <option value="uvicorn" />
+          <option value="duckdb" />
+          <option value="mcp" />
+          <option value="httpx" />
+          <option value="aiohappyeyeballs" />
+          <option value="aiohttp" />
+          <option value="aiosignal" />
+          <option value="annotated-doc" />
+          <option value="annotated-types" />
+          <option value="anyio" />
+          <option value="attrs" />
+          <option value="Authlib" />
+          <option value="beartype" />
+          <option value="cachetools" />
+          <option value="certifi" />
+          <option value="cffi" />
+          <option value="charset-normalizer" />
+          <option value="click" />
+          <option value="colorama" />
+          <option value="cryptography" />
+          <option value="cyclopts" />
+          <option value="diskcache" />
+          <option value="dotenv" />
+          <option value="email-validator" />
+          <option value="fastmcp" />
+          <option value="httpcore" />
+          <option value="jsonschema" />
+          <option value="jsonschema-path" />
+          <option value="jsonschema-specifications" />
+          <option value="markdown-it-py" />
+          <option value="openapi-pydantic" />
+          <option value="py-key-value-aio" />
+          <option value="py-key-value-shared" />
+          <option value="pydantic" />
+          <option value="pydantic-settings" />
+          <option value="pydantic_core" />
+          <option value="referencing" />
+          <option value="requests" />
+          <option value="rich" />
+          <option value="rich-rst" />
+          <option value="SQLAlchemy" />
+          <option value="sse-starlette" />
+          <option value="starlette" />
+          <option value="stytch" />
+          <option value="typer" />
+          <option value="typing-inspection" />
+          <option value="yarl" />
+        </list>
+      </option>
+    </inspection_tool>
+  </profile>
+</component>

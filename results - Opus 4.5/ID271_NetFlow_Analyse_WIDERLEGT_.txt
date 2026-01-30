@@ -1,0 +1,198 @@
+================================================================================
+                    FORENSISCHE NETFLOW-ANALYSE - SICHERHEITSBERICHT
+================================================================================
+
+Bericht-ID:         NF-2026-0124-271
+Erstellungsdatum:   24. Januar 2026
+NetFlow-ID:         271
+Analyst:            Automatisierte Forensische Analyse
+
+================================================================================
+[KLASSIFIZIERUNG: WIDERLEGT]
+================================================================================
+
+Die NIDS-Markierung als bösartiger Netzwerkverkehr wurde nach eingehender
+forensischer Analyse NICHT BESTÄTIGT. Der untersuchte Flow stellt legitimen
+DNS-Verkehr dar.
+
+================================================================================
+BEWEISFÜHRUNG
+================================================================================
+
+Der analysierte NetFlow-Eintrag mit der ID 271 zeigt folgende Charakteristika:
+
+KOMMUNIKATIONSPARTNER:
+----------------------
+• Quell-IP:        172.31.69.5 (internes RFC1918-Netzwerk, AWS VPC-Bereich)
+• Ziel-IP:         172.31.0.2 (internes RFC1918-Netzwerk, AWS VPC-Bereich)
+• Quell-Port:      54131 (ephemerer Port)
+• Ziel-Port:       53 (Standard-DNS-Port)
+• Protokoll:       UDP (Protokoll-ID 17)
+
+DNS-SPEZIFISCHE MERKMALE:
+-------------------------
+• DNS_QUERY_ID:    3892
+• DNS_QUERY_TYPE:  1 (A-Record-Anfrage – Standard-Hostnamenauflösung)
+• DNS_TTL_ANSWER:  4 Sekunden (kurze Time-to-Live, aber nicht ungewöhnlich)
+
+VOLUMETRISCHE ANALYSE:
+----------------------
+• IN_BYTES:        68 Bytes (typische DNS-Anfragegröße)
+• OUT_BYTES:       167 Bytes (typische DNS-Antwortgröße)
+• IN_PKTS:         1 Paket
+• OUT_PKTS:        1 Paket
+• Muster:          Klassisches Request-Response (1:1)
+• FLOW_DURATION:   0 ms (Instant-Response, normal für DNS)
+
+HISTORISCHE KONTEXTANALYSE:
+---------------------------
+Die IP-History zeigt 26.009 Flows zwischen diesen beiden Hosts – allesamt
+DNS-Anfragen an Port 53 mit UDP. Dies deutet auf eine etablierte, legitime
+Client-DNS-Server-Beziehung hin. Die IP 172.31.0.2 fungiert offensichtlich
+als interner DNS-Resolver für das Subnetz.
+
+GEOLOKALISIERUNG:
+-----------------
+Beide IP-Adressen gehören zum privaten Adressbereich (RFC1918) und sind
+daher nicht geolokalisierbar. Sie befinden sich im internen AWS VPC-Netzwerk.
+
+================================================================================
+KATEGORISIERUNG DER BEDROHUNG
+================================================================================
+
+Obwohl das NIDS beide IP-Adressen mit "Infiltration" markiert hat, zeigt der
+vorliegende Flow KEINE Indikatoren für Infiltration:
+
++---------------------------+------------+---------------------------+----------+
+| Infiltrations-Indikator   | Erwartet   | Beobachtet                | Status   |
++---------------------------+------------+---------------------------+----------+
+| Ungewöhnliche L7_PROTO    | Ja         | L7_PROTO: 0.0 (DNS)       | NORMAL   |
+| Lange Sessions            | Ja         | DURATION: 0ms             | NORMAL   |
+| Hohe OUT_BYTES            | Ja         | 167 Bytes                 | NORMAL   |
+| Variierende Ports         | Ja         | Konstant Port 53          | NORMAL   |
+| C&C-ähnliche Patterns     | Ja         | Standard DNS Query        | NORMAL   |
+| Hohe Paketgrößen          | Ja         | 68-167 Bytes              | NORMAL   |
++---------------------------+------------+---------------------------+----------+
+
+Ergebnis: Kein Indikator für bösartige Aktivität identifiziert.
+
+================================================================================
+RISIKOBEWERTUNG
+================================================================================
+
+RISIKOSTUFE: NIEDRIG
+
+Der analysierte Flow repräsentiert eine legitime DNS-Anfrage innerhalb eines
+privaten Netzwerksegments. Die Merkmale entsprechen exakt dem erwarteten
+Verhalten eines internen Clients, der den lokalen DNS-Resolver abfragt:
+
+1. Die Paketgrößen (68/167 Bytes) sind typisch für DNS A-Record-Anfragen
+
+2. Das Request-Response-Verhältnis (1:1) ist normal für DNS-Kommunikation
+
+3. Die ephemeren Quell-Ports (54131) mit konstantem Ziel-Port 53 entsprechen
+   dem Standard-DNS-Protokollverhalten
+
+4. Die hohe Anzahl historischer Flows (26.009) ohne Anomalien spricht für
+   regulären, etablierten Netzwerkbetrieb
+
+5. Keine Anzeichen für DNS-Tunneling, -Exfiltration oder C&C-Kommunikation
+
+================================================================================
+EMPFOHLENE GEGENMASSNAHMEN
+================================================================================
+
+Da die Klassifizierung widerlegt wurde, sind KEINE unmittelbaren Gegenmaßnahmen
+erforderlich. Dennoch werden folgende präventive Maßnahmen empfohlen:
+
+1. NIDS-TUNING
+   Die Falsch-Positiv-Rate für interne DNS-Kommunikation sollte durch
+   Whitelisting des internen DNS-Servers (172.31.0.2) reduziert werden.
+   Priorität: MITTEL
+
+2. BASELINE-DOKUMENTATION
+   Die normale DNS-Aktivität zwischen den Subnetzen sollte dokumentiert
+   werden, um zukünftige Anomalien besser erkennen zu können.
+   Priorität: NIEDRIG
+
+3. DNS-MONITORING
+   Obwohl dieser Flow legitim ist, sollte DNS-Traffic generell auf
+   DNS-Tunneling oder DNS-Exfiltration überwacht werden. Typische
+   Indikatoren wären:
+   - Ungewöhnlich große Payloads
+   - Viele verschachtelte Subdomains
+   - Häufige TXT-Record-Anfragen
+   - Anomale Abfragefrequenzen
+   Priorität: NIEDRIG
+
+================================================================================
+FAZIT
+================================================================================
+
+Der NetFlow-Eintrag #271 stellt eine GEWÖHNLICHE DNS-AUFLÖSUNG dar.
+
+Die NIDS-Markierung als "Infiltration" ist ein FALSE POSITIVE, wahrscheinlich
+verursacht durch die hohe Kommunikationsfrequenz zwischen diesen beiden Hosts.
+
+Die Aktivität ist vollständig konsistent mit normalem Netzwerkbetrieb innerhalb
+einer AWS VPC-Umgebung, wobei 172.31.0.2 als zentraler DNS-Resolver für das
+Subnetz 172.31.69.0/24 fungiert.
+
+Es wird empfohlen, die NIDS-Regelwerke zu optimieren, um ähnliche False
+Positives in Zukunft zu vermeiden.
+
+================================================================================
+ANALYSIERTE ROHDATEN (ORIGINAL)
+================================================================================
+
+netflow_id: 271
+IPV4_SRC_ADDR: 172.31.69.5
+L4_SRC_PORT: 54131
+IPV4_DST_ADDR: 172.31.0.2
+L4_DST_PORT: 53
+PROTOCOL: 17
+L7_PROTO: 0.0
+IN_BYTES: 68
+IN_PKTS: 1
+OUT_BYTES: 167
+OUT_PKTS: 1
+TCP_FLAGS: 0
+CLIENT_TCP_FLAGS: 0
+SERVER_TCP_FLAGS: 0
+FLOW_DURATION_MILLISECONDS: 0
+DURATION_IN: 0
+DURATION_OUT: 0
+MIN_TTL: 0
+MAX_TTL: 0
+LONGEST_FLOW_PKT: 167
+SHORTEST_FLOW_PKT: 68
+MIN_IP_PKT_LEN: 68
+MAX_IP_PKT_LEN: 167
+SRC_TO_DST_SECOND_BYTES: 68.0
+DST_TO_SRC_SECOND_BYTES: 167.0
+RETRANSMITTED_IN_BYTES: 0
+RETRANSMITTED_IN_PKTS: 0
+RETRANSMITTED_OUT_BYTES: 0
+RETRANSMITTED_OUT_PKTS: 0
+SRC_TO_DST_AVG_THROUGHPUT: 544000
+DST_TO_SRC_AVG_THROUGHPUT: 1336000
+NUM_PKTS_UP_TO_128_BYTES: 1
+NUM_PKTS_128_TO_256_BYTES: 1
+NUM_PKTS_256_TO_512_BYTES: 0
+NUM_PKTS_512_TO_1024_BYTES: 0
+NUM_PKTS_1024_TO_1514_BYTES: 0
+TCP_WIN_MAX_IN: 0
+TCP_WIN_MAX_OUT: 0
+ICMP_TYPE: 0
+ICMP_IPV4_TYPE: 0
+DNS_QUERY_ID: 3892
+DNS_QUERY_TYPE: 1
+DNS_TTL_ANSWER: 4
+FTP_COMMAND_RET_CODE: 0
+
+================================================================================
+                              ENDE DES BERICHTS
+================================================================================
+
+Dokument generiert durch automatisierte forensische NetFlow-Analyse
+Klassifizierung: INTERN - NUR FÜR AUTORISIERTES PERSONAL

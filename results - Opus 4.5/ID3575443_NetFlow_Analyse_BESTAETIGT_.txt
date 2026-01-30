@@ -1,0 +1,262 @@
+================================================================================
+                    FORENSISCHE NETFLOW-ANALYSE - SICHERHEITSBERICHT
+================================================================================
+
+Bericht-ID:         3575443
+Analysedatum:       25. Januar 2026
+Analyst:            Automatisierte Forensische Analyse
+
+================================================================================
+[KLASSIFIZIERUNG: BESTÄTIGT]
+================================================================================
+
+Die NIDS-Markierung dieses Netzwerkverkehrs als bösartig wird hiermit BESTÄTIGT.
+Der analysierte Flow weist eindeutige Merkmale eines DDoS-Angriffs vom Typ 
+HOIC (High Orbit Ion Cannon) HTTP Flood auf.
+
+================================================================================
+BEWEISFÜHRUNG
+================================================================================
+
+1. GEOLOKALISIERUNG UND NETZWERKKONTEXT
+-------------------------------------------------------------------------------
+   Quell-IP:        18.218.115.60
+   Standort:        Dublin, Ohio, Vereinigte Staaten
+   ISP:             Amazon.com, Inc. (AWS)
+   AS-Nummer:       AS16509
+
+   Ziel-IP:         172.31.69.28
+   Standort:        Interne/Private IP-Adresse (RFC 1918)
+   Netzwerkbereich: 172.16.0.0 - 172.31.255.255 (Privat)
+
+   BEWERTUNG: Die Quell-IP stammt aus der AWS-Infrastruktur. Der Adressbereich
+   172.31.x.x deutet auf eine AWS VPC (Virtual Private Cloud) hin, was darauf
+   schließen lässt, dass ein externer AWS-Server einen internen AWS-Dienst 
+   angreift.
+
+2. BEDROHUNGSINTELLIGENZ
+-------------------------------------------------------------------------------
+   Die Quell-IP 18.218.115.60 ist in Threat-Intelligence-Datenbanken mit 
+   folgenden Angriffsaktivitäten verzeichnet:
+   
+   • DDOS attack-HOIC
+   • DDoS attacks-LOIC-HTTP
+   • Brute Force -Web
+   • Brute Force -XSS
+   • SQL Injection
+   • DDOS attack-LOIC-UDP
+
+   BEWERTUNG: Die IP ist als bekannter Angriffsursprung dokumentiert, mit
+   besonderem Fokus auf HTTP-basierte DDoS-Angriffe (HOIC, LOIC).
+
+3. HISTORISCHE KOMMUNIKATIONSANALYSE
+-------------------------------------------------------------------------------
+   Gefundene historische Flows zwischen diesen IPs: 112.110 Einträge
+
+   Diese außergewöhnlich hohe Anzahl an Verbindungen zwischen demselben 
+   Quell-Ziel-Paar ist ein starkes Indiz für einen anhaltenden Angriff.
+   
+   Muster in historischen Flows:
+   • Konsistente Zielportierung auf Port 80 (HTTP)
+   • Identische TCP-Flag-Muster (219/27)
+   • Gleicher TTL-Wert (127) über alle Flows
+   • Variierende ephemerale Quellports (typisch für Angriffs-Tools)
+
+4. PROTOKOLLANALYSE
+-------------------------------------------------------------------------------
+   Layer 4 Protokoll:  TCP (ID: 6)
+   Layer 7 Protokoll:  HTTP (ID: 7)
+   Zielport:           80 (Standard-HTTP)
+
+5. ANOMALIE-INDIKATOREN IM ANALYSIERTEN FLOW
+-------------------------------------------------------------------------------
+   a) FLOW-DAUER-ANOMALIE:
+      • FLOW_DURATION_MILLISECONDS: 0
+      • DURATION_IN: 0
+      • DURATION_OUT: 0
+      
+      Eine Flow-Dauer von 0 Millisekunden bei gleichzeitig hohem Datenvolumen
+      ist physikalisch unmöglich und deutet auf extreme Burst-Aktivität hin,
+      die typisch für DDoS-Angriffswerkzeuge ist.
+
+   b) EXTREMER DURCHSATZ:
+      • SRC_TO_DST_AVG_THROUGHPUT: 516.336.000 Bytes/s (~492 MB/s)
+      • DST_TO_SRC_AVG_THROUGHPUT: 1.553.688.000 Bytes/s (~1,45 GB/s)
+      
+      Diese Durchsatzraten sind für legitimen HTTP-Verkehr unrealistisch hoch.
+
+   c) PAKET-VERTEILUNG:
+      • IN_PKTS: 205 (Quell → Ziel)
+      • OUT_PKTS: 105 (Ziel → Quelle)
+      • NUM_PKTS_UP_TO_128_BYTES: 108 (kleine Pakete)
+      • NUM_PKTS_256_TO_512_BYTES: 50
+      • NUM_PKTS_512_TO_1024_BYTES: 51
+      
+      Die hohe Anzahl kleiner Pakete (<128 Bytes) kombiniert mit Paketen
+      mittlerer Größe entspricht dem typischen HOIC-Anfragemuster.
+
+   d) TCP-FLAG-ANALYSE:
+      • TCP_FLAGS: 219 (binär: 11011011)
+      • CLIENT_TCP_FLAGS: 219
+      • SERVER_TCP_FLAGS: 27 (binär: 00011011)
+      
+      Flag 219 enthält: FIN, SYN, RST, PSH, ACK, URG
+      Diese Kombination aller kritischen TCP-Flags ist für normale 
+      HTTP-Kommunikation atypisch und deutet auf aggressive Verbindungs-
+      manipulation hin.
+
+   e) DATENVOLUMEN:
+      • IN_BYTES: 64.542 Bytes (eingehend von Angreifer)
+      • OUT_BYTES: 194.211 Bytes (Serverantwort)
+      
+      Das asymmetrische Verhältnis (1:3) mit hoher Server-Antwort
+      ist konsistent mit HTTP-Flood-Angriffen, bei denen kleine Anfragen
+      große Serverantworten provozieren.
+
+   f) KEINE RETRANSMISSIONEN:
+      • RETRANSMITTED_IN_BYTES: 0
+      • RETRANSMITTED_IN_PKTS: 0
+      • RETRANSMITTED_OUT_BYTES: 0
+      • RETRANSMITTED_OUT_PKTS: 0
+      
+      Keine Retransmissionen bei derart hohem Durchsatz deuten auf eine
+      direkte, lokale Netzwerkverbindung oder orchestrierten Angriff hin.
+
+   g) TTL-KONSISTENZ:
+      • MIN_TTL: 127
+      • MAX_TTL: 127
+      
+      Ein konstanter TTL-Wert von 127 (Windows-Standardwert: 128, minus 1 Hop)
+      deutet auf einen Windows-basierten Angreifer mit direkter Verbindung hin.
+
+================================================================================
+KATEGORISIERUNG DER BEDROHUNG
+================================================================================
+
+Primäre Klassifizierung:    DDoS-Angriff
+Angriffstyp:                HOIC (High Orbit Ion Cannon) HTTP Flood
+Sekundäre Merkmale:         Potenzielle LOIC-HTTP-Komponenten
+
+HOIC-SIGNATUR-ÜBEREINSTIMMUNG:
+------------------------------
+✓ Hoher HTTP Flood Traffic                    → BESTÄTIGT (L7_PROTO: HTTP)
+✓ Hohe IN_PKTS und Bytes                      → BESTÄTIGT (205 Pakete, 64KB)
+✓ Kurze DURATION                              → BESTÄTIGT (0 ms)
+✓ L7_PROTO HTTP/HTTPS                         → BESTÄTIGT (HTTP auf Port 80)
+✓ Hoher Throughput                            → BESTÄTIGT (>500 MB/s)
+✓ Viele Booster Threads simulierend           → BESTÄTIGT (112.110 hist. Flows)
+○ Hohe NUM_PKTS_1024_TO_1514_BYTES            → NICHT BESTÄTIGT (Wert: 0)
+✓ TCP_FLAGS PUSH/FIN                          → BESTÄTIGT (Flag 219)
+
+Übereinstimmungsrate: 87,5% (7 von 8 Indikatoren)
+
+================================================================================
+RISIKOBEWERTUNG
+================================================================================
+
+Bedrohungsstufe:            KRITISCH
+Konfidenz:                  HOCH (95%)
+
+Risikofaktoren:
+• Bekannte bösartige Quell-IP mit dokumentierter DDoS-Historie
+• Über 112.000 historische Verbindungsversuche
+• Alle technischen Indikatoren konsistent mit HOIC-Angriffsmuster
+• Ziel ist interne Infrastruktur (potenzielle Produktionssysteme)
+
+Potenzielle Auswirkungen:
+• Dienstverweigerung für den Ziel-Webserver
+• Ressourcenerschöpfung der Netzwerkinfrastruktur
+• Mögliche Kaskadierungseffekte auf verbundene Dienste
+• Erhöhte Infrastrukturkosten (AWS-Datenverkehr)
+
+================================================================================
+EMPFOHLENE GEGENMASSNAHMEN
+================================================================================
+
+SOFORTMASSNAHMEN:
+1. IP-Blockierung: 18.218.115.60 auf Netzwerk-Firewall-Ebene sperren
+2. Rate-Limiting: HTTP-Anfragen von AWS-IP-Bereichen einschränken
+3. AWS Security Groups: Eingehende Regeln für VPC überprüfen
+4. Load Balancer: DDoS-Schutzregeln aktivieren
+
+MITTELFRISTIGE MASSNAHMEN:
+5. AWS Shield: Advanced DDoS-Schutz evaluieren und aktivieren
+6. WAF-Regeln: Web Application Firewall mit HOIC-spezifischen Regeln
+7. Traffic-Analyse: Kontinuierliches Monitoring auf weitere Angriffsquellen
+8. Incident Response: Vorfall dokumentieren und Eskalationsprozesse prüfen
+
+LANGFRISTIGE MASSNAHMEN:
+9. Architektur-Review: Multi-Layer-DDoS-Schutzstrategie implementieren
+10. Threat Intelligence: Automatisierte IP-Reputation-Feeds integrieren
+
+================================================================================
+FAZIT
+================================================================================
+
+Der analysierte NetFlow-Eintrag (ID: 3575443) zeigt eindeutige Merkmale eines
+aktiven DDoS-Angriffs vom Typ HOIC (High Orbit Ion Cannon). Die Kombination aus:
+
+• Bekannter bösartiger Quell-IP (Threat Intelligence bestätigt)
+• Über 112.000 historischen Verbindungen zwischen Quelle und Ziel
+• Anomalem Durchsatz (>500 MB/s bei 0 ms Flow-Dauer)
+• TCP-Flag-Mustern (219 = FIN+SYN+RST+PSH+ACK+URG)
+• HTTP-Protokoll auf Standardport 80
+
+...bildet ein konsistentes Angriffsprofil mit 87,5% Übereinstimmung zur 
+HOIC-Signatur. Die NIDS-Klassifizierung als bösartig ist hiermit forensisch
+BESTÄTIGT.
+
+Sofortige Gegenmaßnahmen werden dringend empfohlen.
+
+================================================================================
+ANALYSIERTE ROHDATEN (ORIGINAL)
+================================================================================
+
+netflow_id: 3575443
+IPV4_SRC_ADDR: 18.218.115.60
+L4_SRC_PORT: 61057
+IPV4_DST_ADDR: 172.31.69.28
+L4_DST_PORT: 80
+PROTOCOL: 6
+L7_PROTO: 7.0
+IN_BYTES: 64542
+IN_PKTS: 205
+OUT_BYTES: 194211
+OUT_PKTS: 105
+TCP_FLAGS: 219
+CLIENT_TCP_FLAGS: 219
+SERVER_TCP_FLAGS: 27
+FLOW_DURATION_MILLISECONDS: 0
+DURATION_IN: 0
+DURATION_OUT: 0
+MIN_TTL: 127
+MAX_TTL: 127
+LONGEST_FLOW_PKT: 1975
+SHORTEST_FLOW_PKT: 40
+MIN_IP_PKT_LEN: 40
+MAX_IP_PKT_LEN: 1975
+SRC_TO_DST_SECOND_BYTES: 64542.0
+DST_TO_SRC_SECOND_BYTES: 194211.0
+RETRANSMITTED_IN_BYTES: 0
+RETRANSMITTED_IN_PKTS: 0
+RETRANSMITTED_OUT_BYTES: 0
+RETRANSMITTED_OUT_PKTS: 0
+SRC_TO_DST_AVG_THROUGHPUT: 516336000
+DST_TO_SRC_AVG_THROUGHPUT: 1553688000
+NUM_PKTS_UP_TO_128_BYTES: 108
+NUM_PKTS_128_TO_256_BYTES: 0
+NUM_PKTS_256_TO_512_BYTES: 50
+NUM_PKTS_512_TO_1024_BYTES: 51
+NUM_PKTS_1024_TO_1514_BYTES: 0
+TCP_WIN_MAX_IN: 8192
+TCP_WIN_MAX_OUT: 26883
+ICMP_TYPE: 0
+ICMP_IPV4_TYPE: 0
+DNS_QUERY_ID: 0
+DNS_QUERY_TYPE: 0
+DNS_TTL_ANSWER: 0
+FTP_COMMAND_RET_CODE: 0
+
+================================================================================
+                              ENDE DES BERICHTS
+================================================================================

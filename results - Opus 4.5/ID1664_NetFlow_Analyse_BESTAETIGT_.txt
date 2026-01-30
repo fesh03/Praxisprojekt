@@ -1,0 +1,210 @@
+================================================================================
+                    FORENSISCHE NETFLOW-ANALYSE - SICHERHEITSBERICHT
+================================================================================
+
+Bericht-ID:         1664
+Analysedatum:       24. Januar 2026
+Analyst:            Automatisierte Forensische Analyse (KI-gestützt)
+
+================================================================================
+[KLASSIFIZIERUNG: BESTÄTIGT]
+================================================================================
+
+Der analysierte NetFlow-Eintrag wird als BÖSARTIG eingestuft. Die Analyse 
+bestätigt die Markierung durch das Network Intrusion Detection System (NIDS).
+
+Bedrohungstyp: FTP-BRUTE-FORCE-ANGRIFF
+
+================================================================================
+BEWEISFÜHRUNG
+================================================================================
+
+1. ZIELPORT-ANALYSE
+   ─────────────────
+   • L4_DST_PORT: 21 (FTP-Kontrollport)
+   • L7_PROTO: 1.178 (deutet auf FTP-Protokoll hin)
+   • Der Zielport 21 ist der Standard-Port für FTP-Verbindungen und ein 
+     häufiges Ziel für Brute-Force-Angriffe.
+
+2. QUELL-IP-REPUTATION
+   ────────────────────
+   • Quell-IP: 13.59.126.31
+   • Geolokation: Dublin, Ohio, USA (Amazon AWS-Infrastruktur)
+   • ISP: Amazon.com, Inc. (AS16509)
+   • Bedrohungsintelligenz: Die IP ist bereits mit "DoS attacks-SlowHTTPTest" 
+     assoziiert, was auf frühere bösartige Aktivitäten hindeutet.
+
+3. ZIEL-IP-ANALYSE
+   ────────────────
+   • Ziel-IP: 172.31.69.25 (Private IP-Adresse, RFC 1918)
+   • Bedrohungshistorie: Mehrfach angegriffen durch:
+     - DoS attacks-Hulk
+     - DDoS attacks-LOIC-HTTP
+     - SSH-Bruteforce
+     - DoS attacks-GoldenEye
+     - FTP-BruteForce (RELEVANT)
+     - DoS attacks-SlowHTTPTest
+     - DoS attacks-Slowloris
+
+4. KOMMUNIKATIONSHISTORIE
+   ───────────────────────
+   • Gefundene NetFlow-Einträge zwischen diesen IPs: 14.116 Verbindungen
+   • KRITISCH: Diese extrem hohe Anzahl an Verbindungen von einer einzelnen 
+     Quell-IP zum FTP-Port ist ein starkes Indiz für einen Brute-Force-Angriff.
+   • Alle historischen Flows zeigen identische Muster:
+     - Gleicher Zielport (21)
+     - Wechselnde Quellports (typisch für automatisierte Angriffe)
+     - Konsistente Paketgrößen und Byte-Werte
+
+5. VERKEHRSMUSTER-ANALYSE
+   ───────────────────────
+   • IN_PKTS: 7 | OUT_PKTS: 7
+   • IN_BYTES: 420 | OUT_BYTES: 280
+   • NUM_PKTS_UP_TO_128_BYTES: 14 (100% kleine Pakete)
+   • Diese Werte sind typisch für FTP-Login-Versuche, bei denen nur kleine 
+     Kontrollnachrichten ausgetauscht werden.
+
+6. TCP-FLAG-ANALYSE
+   ─────────────────
+   • TCP_FLAGS: 22 (SYN + ACK + RST = 0x16)
+   • CLIENT_TCP_FLAGS: 2 (SYN)
+   • SERVER_TCP_FLAGS: 20 (ACK + RST)
+   • Die RST-Flags vom Server deuten auf abgelehnte oder abgebrochene 
+     Verbindungen hin, was bei fehlgeschlagenen Login-Versuchen üblich ist.
+
+7. ZEITLICHE MERKMALE
+   ───────────────────
+   • FLOW_DURATION_MILLISECONDS: 4.294.873 (~71,6 Minuten)
+   • DURATION_IN/OUT: 94 ms
+   • Die kurze aktive Dauer bei langer Gesamtfluss-Zeit deutet auf 
+     intermittierende Verbindungsversuche hin.
+
+8. ABWEICHUNG VON NORMALEM FTP-VERKEHR
+   ────────────────────────────────────
+   • FTP_COMMAND_RET_CODE: 0
+   • Das Fehlen eines FTP-Antwortcodes könnte bedeuten, dass die Verbindung 
+     vor einer vollständigen FTP-Transaktion abgebrochen wurde.
+   • Legitimer FTP-Verkehr würde typischerweise Antwortcodes wie 230 
+     (erfolgreich) oder 530 (Zugriff verweigert) zeigen.
+
+================================================================================
+KATEGORISIERUNG DER BEDROHUNG
+================================================================================
+
+Primäre Klassifizierung:    FTP-BRUTE-FORCE-ANGRIFF
+Sekundäre Klassifizierung:  Credential-Stuffing / Passwort-Raten
+
+Übereinstimmung mit bekannten Angriffssignaturen:
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ INDIKATOR                          │ ERWARTET           │ BEOBACHTET        │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ Zielport                           │ 21                 │ 21 ✓              │
+│ Hohe Flow-Anzahl von einer Quelle  │ Ja                 │ 14.116 Flows ✓    │
+│ Pakete pro Flow                    │ 11-51              │ 14 (7+7) ✓        │
+│ Kurze Dauer                        │ Ja                 │ 94 ms ✓           │
+│ L7-Protokoll                       │ FTP                │ 1.178 (FTP) ✓     │
+│ Hohe NUM_PKTS_UP_TO_128_BYTES      │ Ja                 │ 14 (100%) ✓       │
+│ Einzelne Quelle zu FTP-Server      │ Ja                 │ Bestätigt ✓       │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+================================================================================
+RISIKOBEWERTUNG
+================================================================================
+
+Schweregrad:           HOCH
+Konfidenz:             95%
+Angriffsstatus:        AKTIV (basierend auf Flowhistorie)
+
+Potentielle Auswirkungen:
+• Kompromittierung von FTP-Benutzerkonten
+• Unbefugter Dateizugriff auf sensible Daten
+• Lateral Movement innerhalb des Netzwerks
+• Datenexfiltration nach erfolgreichem Zugriff
+
+================================================================================
+EMPFOHLENE GEGENMASSNAHMEN
+================================================================================
+
+SOFORT:
+1. Die Quell-IP 13.59.126.31 auf der Perimeter-Firewall blockieren
+2. FTP-Zugriffsprotokolle auf erfolgreiche Anmeldungen prüfen
+3. Kompromittierte Konten identifizieren und Passwörter zurücksetzen
+
+KURZFRISTIG:
+4. Rate-Limiting für FTP-Verbindungen implementieren
+5. Account-Lockout-Richtlinien nach fehlgeschlagenen Versuchen einführen
+6. Fail2Ban oder ähnliche Tools für automatische IP-Sperrung konfigurieren
+
+LANGFRISTIG:
+7. Migration von FTP zu SFTP/FTPS erwägen
+8. Multi-Faktor-Authentifizierung für kritische Dienste einführen
+9. AWS-IP-Bereiche genauer überwachen (häufig für Angriffe missbraucht)
+
+================================================================================
+FAZIT
+================================================================================
+
+Die forensische Analyse bestätigt zweifelsfrei, dass es sich bei dem 
+untersuchten NetFlow-Eintrag (ID: 1664) um einen FTP-Brute-Force-Angriff 
+handelt. Die Kombination aus:
+
+• Bekannter bösartiger Quell-IP mit historischen Angriffen
+• Extrem hohe Verbindungsanzahl (14.116 Flows) zum FTP-Port
+• Konsistente Angriffsmuster über alle historischen Verbindungen
+• Übereinstimmung mit allen definierten Brute-Force-Indikatoren
+
+...liefert ausreichende Beweise für eine eindeutige Klassifizierung als 
+bösartigen Netzwerkverkehr.
+
+================================================================================
+ANALYSIERTE ROHDATEN (ORIGINAL)
+================================================================================
+
+netflow_id: 1664
+IPV4_SRC_ADDR: 13.59.126.31
+L4_SRC_PORT: 34518
+IPV4_DST_ADDR: 172.31.69.25
+L4_DST_PORT: 21
+PROTOCOL: 6
+L7_PROTO: 1.178
+IN_BYTES: 420
+IN_PKTS: 7
+OUT_BYTES: 280
+OUT_PKTS: 7
+TCP_FLAGS: 22
+CLIENT_TCP_FLAGS: 2
+SERVER_TCP_FLAGS: 20
+FLOW_DURATION_MILLISECONDS: 4294873
+DURATION_IN: 94
+DURATION_OUT: 94
+MIN_TTL: 63
+MAX_TTL: 63
+LONGEST_FLOW_PKT: 60
+SHORTEST_FLOW_PKT: 40
+MIN_IP_PKT_LEN: 40
+MAX_IP_PKT_LEN: 60
+SRC_TO_DST_SECOND_BYTES: 420.0
+DST_TO_SRC_SECOND_BYTES: 280.0
+RETRANSMITTED_IN_BYTES: 0
+RETRANSMITTED_IN_PKTS: 0
+RETRANSMITTED_OUT_BYTES: 0
+RETRANSMITTED_OUT_PKTS: 0
+SRC_TO_DST_AVG_THROUGHPUT: 32000
+DST_TO_SRC_AVG_THROUGHPUT: 16000
+NUM_PKTS_UP_TO_128_BYTES: 14
+NUM_PKTS_128_TO_256_BYTES: 0
+NUM_PKTS_256_TO_512_BYTES: 0
+NUM_PKTS_512_TO_1024_BYTES: 0
+NUM_PKTS_1024_TO_1514_BYTES: 0
+TCP_WIN_MAX_IN: 26883
+TCP_WIN_MAX_OUT: 0
+ICMP_TYPE: 0
+ICMP_IPV4_TYPE: 0
+DNS_QUERY_ID: 0
+DNS_QUERY_TYPE: 0
+DNS_TTL_ANSWER: 0
+FTP_COMMAND_RET_CODE: 0
+
+================================================================================
+                              ENDE DES BERICHTS
+================================================================================

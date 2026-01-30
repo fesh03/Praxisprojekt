@@ -1,0 +1,212 @@
+================================================================================
+                    FORENSISCHE NETFLOW-ANALYSE - SICHERHEITSBERICHT
+================================================================================
+
+Analysedatum:       24. Januar 2026
+NetFlow-ID:         3500384
+Analyst:            Automatisierte Forensische Analyse (NIDS-Validierung)
+
+--------------------------------------------------------------------------------
+[KLASSIFIZIERUNG: BESTÄTIGT]
+--------------------------------------------------------------------------------
+
+Die vom Network Intrusion Detection System (NIDS) vorgenommene Klassifizierung
+als bösartiger Netzwerkverkehr wird hiermit BESTÄTIGT.
+
+================================================================================
+                              BEWEISFÜHRUNG
+================================================================================
+
+1. QUELL-IP-ANALYSE (18.221.219.4)
+--------------------------------------------------------------------------------
+   • Geolokation:     Dublin, Ohio, United States
+   • ISP:             Amazon.com, Inc. (AWS)
+   • AS-Nummer:       AS16509
+   • Bedrohungsstatus: BEKANNTE BEDROHUNG - FTP-BruteForce
+
+2. ZIEL-IP-ANALYSE (172.31.69.25)
+--------------------------------------------------------------------------------
+   • IP-Typ:          Private/Interne IP-Adresse (RFC 1918)
+   • Bedrohungsstatus: Mehrfach angegriffen
+   • Bekannte Angriffe auf dieses Ziel:
+     - DoS attacks-Hulk
+     - DDoS attacks-LOIC-HTTP
+     - SSH-Bruteforce
+     - DoS attacks-GoldenEye
+     - FTP-BruteForce
+     - DoS attacks-SlowHTTPTest
+     - DoS attacks-Slowloris
+
+3. PROTOKOLL- UND PORT-ANALYSE
+--------------------------------------------------------------------------------
+   • Protokoll:       TCP (ID: 6)
+   • Zielport:        21 (FTP-Kontrollverbindung)
+   • Quellport:       57882 (Ephemeral Port - wechselnd bei jedem Versuch)
+   • L7-Protokoll:    1.0 (FTP)
+
+4. FLOW-CHARAKTERISTIKEN
+--------------------------------------------------------------------------------
+   • Eingehende Bytes:     840
+   • Ausgehende Bytes:     560
+   • Eingehende Pakete:    14
+   • Ausgehende Pakete:    14
+   • Flow-Dauer:           4.294.749 ms (~71 Minuten)
+   • Alle Pakete:          ≤128 Bytes (28 Pakete)
+   • TCP-Flags:            22 (SYN+ACK+RST)
+   • Client-TCP-Flags:     2 (SYN)
+   • Server-TCP-Flags:     20 (SYN+ACK)
+
+5. HISTORISCHE KOMMUNIKATIONSANALYSE
+--------------------------------------------------------------------------------
+   KRITISCHER BEFUND: 25.933 dokumentierte NetFlow-Einträge zwischen
+   dieser Quell-IP und Ziel-IP gefunden!
+
+   Die historischen Flows zeigen ein konsistentes Muster:
+   • Identischer Zielport:       21 (FTP)
+   • Wechselnde Quellports:      33594, 39808, 46778, 57748, 50708, etc.
+   • Konsistente Paketgrößen:    780-840 IN_BYTES, 520-560 OUT_BYTES
+   • Identische TCP-Flags:       CLIENT=2 (SYN), SERVER=20 (SYN+ACK)
+   • Alle Pakete ≤128 Bytes:     Typisch für Authentifizierungsversuche
+
+================================================================================
+                         KATEGORISIERUNG DER BEDROHUNG
+================================================================================
+
+ANGRIFFSTYP:        FTP Brute Force Attack
+KATEGORIE:          Brute Force / Credential Stuffing
+SCHWEREGRAD:        HOCH
+
+ÜBEREINSTIMMUNG MIT SIGNATUR-INDIKATOREN:
+--------------------------------------------------------------------------------
+[✓] L4_DST_PORT = 21 (FTP-Standardport)
+[✓] Hohe Flow-Anzahl (25.933 dokumentierte Verbindungen)
+[✓] Paketzahl im typischen Bereich: 14 IN_PKTS (Signatur: 11-51)
+[✓] L7_PROTO = 1.0 (FTP-Protokoll)
+[✓] Hoher NUM_PKTS_UP_TO_128_BYTES: 28 (alle Pakete klein)
+[✓] Eine Quell-IP zu einem FTP-Server
+[✓] Wechselnde Quellports bei gleichem Ziel (Ephemeral Ports)
+[ ] FTP_COMMAND_RET_CODE = 0 (nicht erfasst/keine Fehlerinfo)
+
+ANGRIFFSMUSTER-BESCHREIBUNG:
+--------------------------------------------------------------------------------
+Der Angreifer (18.221.219.4) führt systematische Authentifizierungsversuche
+gegen den FTP-Server (172.31.69.25:21) durch. Die wechselnden Quellports bei
+gleichbleibendem Zielport 21 und die extrem hohe Anzahl von 25.933 Flows
+zwischen diesen beiden IPs sind charakteristisch für automatisierte
+Brute-Force-Angriffe, bei denen verschiedene Benutzername/Passwort-
+Kombinationen durchprobiert werden.
+
+================================================================================
+                            RISIKOBEWERTUNG
+================================================================================
+
+RISIKOSTUFE:        ████████████████████░░░░░ 80% - HOCH
+
+BEGRÜNDUNG:
+• AWS-Infrastruktur als Angriffsquelle ermöglicht Skalierung
+• Interne Ressource (172.31.x.x) ist direktes Angriffsziel
+• 25.933+ dokumentierte Angriffsversuche zeigen Persistenz
+• FTP-Dienst ist für Credential-Angriffe besonders anfällig
+• Bei erfolgreichem Zugriff: Vollständige Kompromittierung möglich
+
+POTENZIELLE AUSWIRKUNGEN:
+• Unbefugter Zugriff auf FTP-Server und gespeicherte Daten
+• Laterale Bewegung im internen Netzwerk
+• Datenexfiltration oder Manipulation
+• Installation von Malware oder Backdoors
+
+================================================================================
+                        EMPFOHLENE GEGENMASSNAHMEN
+================================================================================
+
+SOFORTMASSNAHMEN (Priorität: KRITISCH):
+--------------------------------------------------------------------------------
+1. BLOCKIERUNG der Quell-IP 18.221.219.4 auf Firewall-Ebene
+2. ÜBERPRÜFUNG der FTP-Server-Logs auf erfolgreiche Anmeldungen
+3. PASSWORT-RESET für alle FTP-Benutzerkonten
+4. AKTIVIERUNG von Account-Lockout nach fehlgeschlagenen Versuchen
+
+MITTELFRISTIGE MASSNAHMEN:
+--------------------------------------------------------------------------------
+5. Implementierung von Fail2Ban oder ähnlicher IPS-Lösung
+6. Rate-Limiting für FTP-Authentifizierungsversuche
+7. Migration zu SFTP/FTPS mit Zertifikatsauthentifizierung
+8. Implementierung von Multi-Faktor-Authentifizierung
+9. Geo-Blocking für nicht benötigte Regionen
+
+LANGFRISTIGE MASSNAHMEN:
+--------------------------------------------------------------------------------
+10. Evaluierung der Notwendigkeit des FTP-Dienstes
+11. Netzwerksegmentierung für kritische Dienste
+12. Implementierung eines SIEM-Systems für Korrelation
+13. Regelmäßige Penetrationstests und Vulnerability Scans
+
+================================================================================
+                                   FAZIT
+================================================================================
+
+Die forensische Analyse BESTÄTIGT eindeutig einen aktiven FTP-Brute-Force-
+Angriff. Die Kombination aus:
+
+• Bekannter Bedrohungs-IP mit dokumentierter FTP-BruteForce-Historie
+• Über 25.000 dokumentierten Verbindungsversuchen
+• Charakteristischem Angriffsmuster (wechselnde Ports, kleine Pakete)
+• Konsistenten Flow-Merkmalen über einen langen Zeitraum
+
+lässt keinen Zweifel an der bösartigen Natur dieses Netzwerkverkehrs.
+
+HANDLUNGSEMPFEHLUNG: Sofortige Eskalation an das Security Operations Center
+(SOC) und Einleitung der Incident-Response-Prozeduren.
+
+================================================================================
+                    ANALYSIERTE ROHDATEN (ORIGINAL)
+================================================================================
+
+netflow_id: 3500384
+IPV4_SRC_ADDR: 18.221.219.4
+L4_SRC_PORT: 57882
+IPV4_DST_ADDR: 172.31.69.25
+L4_DST_PORT: 21
+PROTOCOL: 6
+L7_PROTO: 1.0
+IN_BYTES: 840
+IN_PKTS: 14
+OUT_BYTES: 560
+OUT_PKTS: 14
+TCP_FLAGS: 22
+CLIENT_TCP_FLAGS: 2
+SERVER_TCP_FLAGS: 20
+FLOW_DURATION_MILLISECONDS: 4294749
+DURATION_IN: 218
+DURATION_OUT: 218
+MIN_TTL: 63
+MAX_TTL: 63
+LONGEST_FLOW_PKT: 60
+SHORTEST_FLOW_PKT: 40
+MIN_IP_PKT_LEN: 40
+MAX_IP_PKT_LEN: 60
+SRC_TO_DST_SECOND_BYTES: 840.0
+DST_TO_SRC_SECOND_BYTES: 560.0
+RETRANSMITTED_IN_BYTES: 0
+RETRANSMITTED_IN_PKTS: 0
+RETRANSMITTED_OUT_BYTES: 0
+RETRANSMITTED_OUT_PKTS: 0
+SRC_TO_DST_AVG_THROUGHPUT: 24000
+DST_TO_SRC_AVG_THROUGHPUT: 16000
+NUM_PKTS_UP_TO_128_BYTES: 28
+NUM_PKTS_128_TO_256_BYTES: 0
+NUM_PKTS_256_TO_512_BYTES: 0
+NUM_PKTS_512_TO_1024_BYTES: 0
+NUM_PKTS_1024_TO_1514_BYTES: 0
+TCP_WIN_MAX_IN: 26883
+TCP_WIN_MAX_OUT: 0
+ICMP_TYPE: 0
+ICMP_IPV4_TYPE: 0
+DNS_QUERY_ID: 0
+DNS_QUERY_TYPE: 0
+DNS_TTL_ANSWER: 0
+FTP_COMMAND_RET_CODE: 0
+
+================================================================================
+                              ENDE DES BERICHTS
+================================================================================

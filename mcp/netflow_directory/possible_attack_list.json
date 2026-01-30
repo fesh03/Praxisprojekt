@@ -1,0 +1,298 @@
+{
+  "attack_signatures": {
+    "port_scan": {
+      "description": "Port-Scan-Angriff",
+      "category": "Reconnaissance",
+      "indicators": [
+        "Hohe Anzahl unterschiedlicher L4_DST_PORT von gleichem IPV4_SRC_ADDR",
+        "Kurze FLOW_DURATION_MILLISECONDS pro Flow",
+        "Niedrige IN_PKTS und OUT_PKTS (z.B. 1 SYN, 1 RST)",
+        "Hohe Anzahl Flows mit TCP_FLAGS SYN oder RST",
+        "Viele Ziele (IPV4_DST_ADDR) von einem Quell-IP",
+        "Niedriger IN_BYTES und OUT_BYTES pro Flow",
+        "Hohe Varianz in L4_DST_PORT",
+        "MIN_TTL und MAX_TTL ähnlich, typisch für Scans"
+      ]
+    },
+    "ddos": {
+      "description": "DDoS-Angriff",
+      "category": "DoS/DDoS",
+      "indicators": [
+        "Hoher SRC_TO_DST_AVG_THROUGHPUT",
+        "Viele Flows von multiplen IPV4_SRC_ADDR zu einem IPV4_DST_ADDR",
+        "Hohe IN_PKTS und OUT_PKTS",
+        "Hohe Anzahl Flows in kurzer Zeit",
+        "Hohe RETRANSMITTED_IN_PKTS",
+        "Niedrige FLOW_DURATION_MILLISECONDS",
+        "Hoher NUM_PKTS_1024_TO_1514_BYTES",
+        "Hoher TCP_WIN_MAX_IN variabel"
+      ]
+    },
+    "syn_flood": {
+      "description": "SYN-Flood-Angriff",
+      "category": "DoS/DDoS",
+      "indicators": [
+        "TCP_FLAGS mit SYN gesetzt, keine ACK",
+        "Hohe Anzahl IN_PKTS mit SYN",
+        "Hohe Anzahl half-open Connections (kurze DURATION_IN)",
+        "Hoher RETRANSMITTED_IN_PKTS",
+        "Viele IPV4_SRC_ADDR zu einem Port (z.B. 80)",
+        "Niedrige OUT_PKTS pro Flow",
+        "Hoher NUM_PKTS_UP_TO_128_BYTES",
+        "Hohe Anzahl Flows mit CLIENT_TCP_FLAGS SYN"
+      ]
+    },
+    "tcp_retransmission_attack": {
+      "description": "TCP-Retransmission-Angriff",
+      "category": "DoS/DDoS",
+      "indicators": [
+        "Hohe RETRANSMITTED_IN_BYTES und RETRANSMITTED_IN_PKTS",
+        "Hohe Anzahl TCP_FLAGS mit RST oder RETRY",
+        "Hohe Varianz in FLOW_DURATION_MILLISECONDS",
+        "Hoher SRC_TO_DST_SECOND_BYTES",
+        "Niedriger TCP_WIN_MAX_OUT",
+        "Hohe Anzahl Flows mit gleichem Pattern",
+        "Hoher DURATION_OUT im Vergleich zu IN",
+        "Hohe IN_PKTS mit Retransmissions"
+      ]
+    },
+    "slowloris": {
+      "description": "Slowloris-Angriff",
+      "category": "DoS/DDoS",
+      "indicators": [
+        "Sehr lange FLOW_DURATION_MILLISECONDS",
+        "Niedriger SRC_TO_DST_AVG_THROUGHPUT",
+        "Hohe Anzahl simultaner Flows zu L7_PROTO HTTP",
+        "Geringe IN_BYTES über lange Dauer",
+        "TCP_FLAGS mit partial requests (Keep-Alive)",
+        "Hoher DURATION_IN, niedriger OUT",
+        "L4_DST_PORT 80 oder 443",
+        "Niedrige Paketgrößen (NUM_PKTS_UP_TO_128_BYTES hoch)"
+      ]
+    },
+    "hulk": {
+      "description": "HULK-Angriff",
+      "category": "DoS/DDoS",
+      "indicators": [
+        "Hoher SRC_TO_DST_AVG_THROUGHPUT auf HTTP",
+        "Hohe Anzahl unique HTTP requests (L7_PROTO)",
+        "Hohe IN_PKTS und IN_BYTES",
+        "Kurze FLOW_DURATION_MILLISECONDS",
+        "Hoher NUM_PKTS_256_TO_512_BYTES",
+        "Viele POST/GET mit NoCache",
+        "Hohe Varianz in TCP_WIN_MAX_IN",
+        "L7_PROTO HTTP mit hohem Traffic"
+      ]
+    },
+    "goldeneye": {
+      "description": "GoldenEye-Angriff",
+      "category": "DoS/DDoS",
+      "indicators": [
+        "Hohe Anzahl HTTP GET/POST mit random Headers",
+        "Hoher IN_PKTS zu L4_DST_PORT 80",
+        "Hoher SRC_TO_DST_AVG_THROUGHPUT",
+        "Kurze DURATION_MILLISECONDS",
+        "Hohe NUM_PKTS_128_TO_256_BYTES",
+        "TCP_FLAGS mit PUSH",
+        "Viele Flows von distributed Sources",
+        "Hohe IN_BYTES"
+      ]
+    },
+    "slowhttptest": {
+      "description": "SlowHTTPTest-Angriff",
+      "category": "DoS/DDoS",
+      "indicators": [
+        "Lange FLOW_DURATION_MILLISECONDS",
+        "Sehr niedriger Throughput (SRC_TO_DST_AVG_THROUGHPUT)",
+        "Hohe Anzahl partial HTTP POST",
+        "L7_PROTO HTTP Slow Read",
+        "Niedrige Paketraten",
+        "Hoher DURATION_OUT",
+        "TCP persist timer Exploits",
+        "Hohe concurrent Connections"
+      ]
+    },
+    "loic_udp_flood": {
+      "description": "LOIC UDP Flood",
+      "category": "DoS/DDoS",
+      "indicators": [
+        "PROTOCOL 17 (UDP), hohe IN_PKTS",
+        "Hoher SRC_TO_DST_AVG_THROUGHPUT",
+        "Hohe IN_BYTES, niedrige OUT_BYTES",
+        "Kurze FLOW_DURATION_MILLISECONDS",
+        "Hoher NUM_PKTS_512_TO_1024_BYTES",
+        "Viele IPV4_SRC_ADDR zu einem DST",
+        "Keine TCP_FLAGS relevant",
+        "Hohe Paketrate"
+      ]
+    },
+    "loic_http_flood": {
+      "description": "LOIC HTTP Flood",
+      "category": "DoS/DDoS",
+      "indicators": [
+        "L7_PROTO HTTP, hohe IN_PKTS",
+        "Hoher Throughput HTTP",
+        "Hohe Anzahl GET/POST Requests",
+        "Kurze Flows",
+        "L4_DST_PORT 80/443",
+        "Hohe NUM_PKTS_256_TO_512_BYTES",
+        "Distributed Sources",
+        "Hohe IN_BYTES"
+      ]
+    },
+    "hoic": {
+      "description": "HOIC-Angriff",
+      "category": "DoS/DDoS",
+      "indicators": [
+        "Hoher HTTP Flood Traffic",
+        "Hohe IN_PKTS und Bytes",
+        "Kurze DURATION",
+        "L7_PROTO HTTP/HTTPS",
+        "Hoher Throughput",
+        "Viele Booster Threads simulierend",
+        "Hohe NUM_PKTS_1024_TO_1514_BYTES",
+        "TCP_FLAGS PUSH/FIN"
+      ]
+    },
+    "fragmentation_attack": {
+      "description": "Fragmentation-Angriff",
+      "category": "DoS/DDoS",
+      "indicators": [
+        "Hohe Anzahl kleine Pakete (NUM_PKTS_UP_TO_128_BYTES)",
+        "Hohe RETRANSMITTED_IN_PKTS",
+        "Variierende MIN_IP_PKT_LEN MAX_IP_PKT_LEN",
+        "Hohe IN_PKTS",
+        "Niedriger LONGEST_FLOW_PKT",
+        "IP Fragmentation Indikatoren",
+        "Hoher CPU auf Reassemby",
+        "Hohe Flow Anzahl"
+      ]
+    },
+    "connection_exhaustion": {
+      "description": "Connection-Exhaustion-Angriff",
+      "category": "DoS/DDoS",
+      "indicators": [
+        "Hohe Anzahl simultaner Flows",
+        "Lange DURATION_MILLISECONDS",
+        "Niedriger Throughput pro Flow",
+        "Hohe TCP half-open",
+        "Hoher TCP_WIN_MAX_IN",
+        "Viele zu einem DST_PORT",
+        "Hohe CLIENT_TCP_FLAGS SYN",
+        "Ressourcen Exhaustion Muster"
+      ]
+    },
+    "ssh_brute_force": {
+      "description": "SSH Brute Force",
+      "category": "Brute Force",
+      "indicators": [
+        "L4_DST_PORT 22, hohe Anzahl Flows",
+        "11-51 IN_PKTS pro Flow",
+        "Hohe Anzahl gleicher PKT pro Flow",
+        "Kurze FLOW_DURATION_MILLISECONDS",
+        "Hohe Anzahl failed Logins (TCP_FLAGS)",
+        "Ein SRC zu einem DST",
+        "Hoher NUM_PKTS_128_TO_256_BYTES",
+        "PROTOCOL 6 (TCP)"
+      ]
+    },
+    "ftp_brute_force": {
+      "description": "FTP Brute Force",
+      "category": "Brute Force",
+      "indicators": [
+        "L4_DST_PORT 21, hohe Flow Anzahl",
+        "Hohe IN_PKTS mit FTP_COMMAND_RET_CODE 530",
+        "11-51 PKTS pro Flow",
+        "Kurze DURATION",
+        "Ein SRC zu FTP Server",
+        "Hohe RETRANSMITTED_IN_PKTS bei Fehlern",
+        "L7_PROTO FTP",
+        "Hoher NUM_PKTS_UP_TO_128_BYTES"
+      ]
+    },
+    "web_brute_force": {
+      "description": "Web Brute Force",
+      "category": "Brute Force",
+      "indicators": [
+        "L7_PROTO HTTP zu Login Paths",
+        "Hohe Anzahl POST Requests",
+        "L4_DST_PORT 80/443",
+        "Hohe Flow Rate",
+        "Kurze Flows mit 401/403 Responses",
+        "Ein SRC zu Web App",
+        "Hoher NUM_PKTS_256_TO_512_BYTES",
+        "TCP_FLAGS für Auth Attempts"
+      ]
+    },
+    "sql_injection": {
+      "description": "SQL Injection",
+      "category": "Web Application Attack",
+      "indicators": [
+        "L7_PROTO HTTP POST mit langen Queries",
+        "Hohe IN_BYTES für SQLMAP Patterns",
+        "L4_DST_PORT 80/443",
+        "Union/Blind SQL Patterns in L7",
+        "Hohe Response Times (DURATION)",
+        "Variierende DNS_QUERY wenn involved",
+        "Hoher NUM_PKTS_512_TO_1024_BYTES",
+        "Mehrere DB Enumerations"
+      ]
+    },
+    "xss_brute_force": {
+      "description": "XSS Brute Force",
+      "category": "Web Application Attack",
+      "indicators": [
+        "L7_PROTO HTTP mit Script Payloads",
+        "Hohe Anzahl GET/POST zu vulnerable Endpoints",
+        "Hohe IN_BYTES Payloads",
+        "L4_DST_PORT Web Ports",
+        "Hohe 200 Responses trotz Attempts",
+        "Hoher NUM_PKTS_1024_TO_1514_BYTES",
+        "Ein SRC floodet Pages",
+        "Lange Queries in URI"
+      ]
+    },
+    "data_exfiltration": {
+      "description": "Data Exfiltration",
+      "category": "Infiltration",
+      "indicators": [
+        "Hoher OUT_BYTES >> IN_BYTES",
+        "Lange FLOW_DURATION_MILLISECONDS",
+        "Ungewöhnliche PROTOCOL (z.B. DNS, HTTP)",
+        "Hoher DST_TO_SRC_AVG_THROUGHPUT",
+        "Große Pakete (NUM_PKTS_1024_TO_1514_BYTES hoch)",
+        "Nachtzeiten Traffic",
+        "Zu externen IPV4_DST_ADDR",
+        "Hoher TCP_WIN_MAX_OUT"
+      ]
+    },
+    "infiltration": {
+      "description": "Infiltration",
+      "category": "Infiltration",
+      "indicators": [
+        "Ungewöhnliche L7_PROTO Zugriffe",
+        "Hohe Anzahl interne Flows",
+        "Lange Sessions",
+        "Hoher OUT_BYTES",
+        "Variierende Ports",
+        "Hohe DURATION_IN_OUT",
+        "Zu C&C ähnlich Patterns",
+        "Hohe Paketgrößen"
+      ]
+    },
+    "botnet_c_n_c": {
+      "description": "Botnet C&C",
+      "category": "Botnet/Malware",
+      "indicators": [
+        "Regelmäßige kleine Flows zu C&C IP",
+        "Lange Intervalle FLOW_DURATION_MILLISECONDS",
+        "Hohe Anzahl Bots (IPV4_SRC_ADDR) zu einem DST",
+        "Niedriger IN_BYTES OUT_BYTES",
+        "Spezifische L4_DST_PORT C&C",
+        "Periodische Patterns",
+        "Hohe TTL Varianz",
+        "L7_PROTO HTTP/DNS für C&C"
+      ]
+    }
+  }
+}

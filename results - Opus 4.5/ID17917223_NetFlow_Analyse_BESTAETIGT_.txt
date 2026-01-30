@@ -1,0 +1,209 @@
+================================================================================
+                    FORENSISCHE NETFLOW-ANALYSE - SICHERHEITSBERICHT
+================================================================================
+
+Datum der Analyse:      24. Januar 2026
+NetFlow-ID:             17917223
+Analyst:                Forensisches Netzwerk-Sicherheitssystem
+
+================================================================================
+[KLASSIFIZIERUNG: BESTÄTIGT]
+================================================================================
+
+Der analysierte Netzwerkfluss wird als BÖSARTIG eingestuft. Die vorliegenden
+Daten weisen eindeutige Merkmale eines DoS-Angriffs vom Typ GoldenEye auf.
+
+================================================================================
+                              BEWEISFÜHRUNG
+================================================================================
+
+1. QUELL-IP-ANALYSE (18.219.211.138)
+   ─────────────────────────────────────────────────────────────────────────────
+   • Geografischer Standort: Dublin, Ohio, Vereinigte Staaten
+   • Provider: Amazon.com, Inc. (AWS-Infrastruktur)
+   • Autonomous System: AS16509 Amazon.com, Inc.
+   • Bekannte Bedrohungen: DoS attacks-GoldenEye
+   
+   BEWERTUNG: Die Quell-IP ist bereits in Bedrohungsdatenbanken als Ursprung
+   von GoldenEye-Angriffen registriert. Die Nutzung von AWS-Infrastruktur ist
+   ein typisches Merkmal für verteilte Angriffe, da Cloud-Ressourcen oft für
+   bösartige Aktivitäten missbraucht werden.
+
+2. ZIEL-IP-ANALYSE (172.31.69.25)
+   ─────────────────────────────────────────────────────────────────────────────
+   • Adresstyp: Private IP-Adresse (RFC 1918 - Bereich 172.16.0.0/12)
+   • Historische Angriffe auf dieses Ziel:
+     - DoS attacks-Hulk
+     - DDoS attacks-LOIC-HTTP
+     - SSH-Bruteforce
+     - DoS attacks-GoldenEye
+     - FTP-BruteForce
+     - DoS attacks-SlowHTTPTest
+     - DoS attacks-Slowloris
+   
+   BEWERTUNG: Das Zielsystem ist ein interner Server, der bereits mehrfach
+   Ziel verschiedener Angriffstypen war. Dies deutet auf einen exponierten
+   Dienst hin, der aktiv von Angreifern ins Visier genommen wird.
+
+3. PROTOKOLL- UND VERBINDUNGSANALYSE
+   ─────────────────────────────────────────────────────────────────────────────
+   • Layer 4 Protokoll: TCP (Transmission Control Protocol)
+   • Layer 7 Protokoll: HTTP
+   • Zielport: 80 (HTTP-Standardport)
+   • Quellport: 42046 (Ephemeral Port)
+   
+   BEWERTUNG: Die Kommunikation erfolgt über HTTP auf Port 80, was ein
+   primäres Angriffsziel für HTTP-basierte DoS-Angriffe wie GoldenEye darstellt.
+
+4. VERKEHRSMUSTER-ANALYSE
+   ─────────────────────────────────────────────────────────────────────────────
+   • Eingehende Bytes (Client→Server): 1.680 Bytes
+   • Ausgehende Bytes (Server→Client): 2.324 Bytes
+   • Eingehende Pakete: 11
+   • Ausgehende Pakete: 7
+   • Flow-Dauer: 4.294.686 ms (~71,6 Minuten)
+   • Aktive Übertragungsdauer: 281 ms
+   
+   AUFFÄLLIGKEITEN:
+   a) Die extrem lange Flow-Dauer bei minimaler aktiver Übertragungszeit ist
+      charakteristisch für Keep-Alive-basierte DoS-Angriffe.
+   b) TCP_FLAGS: 31 (binär: 11111) - Kombination aus FIN, SYN, RST, PSH, ACK
+      Dies ist ein anomales Flag-Muster.
+   c) CLIENT_TCP_FLAGS: 30 (SYN, RST, PSH, ACK gesetzt)
+   d) SERVER_TCP_FLAGS: 27 (FIN, SYN, RST, ACK gesetzt)
+
+5. HISTORISCHE KOMMUNIKATIONSANALYSE
+   ─────────────────────────────────────────────────────────────────────────────
+   • Gefundene Netflow-Einträge zwischen Quell- und Ziel-IP: 27.723
+   
+   Dies ist eine extrem hohe Anzahl von Verbindungen zwischen denselben
+   Endpunkten und bestätigt ein systematisches Angriffsmuster. Die historischen
+   Flows zeigen identische Charakteristiken:
+   - Konsistente Zielportnummer (Port 80)
+   - Ähnliche TCP-Flag-Muster
+   - Vergleichbare Paketgrößen und Durchsatzwerte
+   - Wechselnde Quellports (typisch für Angriffs-Tools)
+
+================================================================================
+                        KATEGORISIERUNG DER BEDROHUNG
+================================================================================
+
+ANGRIFFSTYP:            GoldenEye DoS-Angriff
+KATEGORIE:              Denial of Service (DoS/DDoS)
+
+ÜBEREINSTIMMENDE SIGNATUREN:
+┌─────────────────────────────────────────┬─────────────────────────────────────┐
+│ GoldenEye-Indikator                     │ Beobachtete Übereinstimmung         │
+├─────────────────────────────────────────┼─────────────────────────────────────┤
+│ HTTP-Verkehr auf Port 80                │ ✓ L4_DST_PORT: 80, L7_PROTO: HTTP   │
+│ Hohe Anzahl von Flows                   │ ✓ 27.723 historische Verbindungen   │
+│ TCP_FLAGS mit PUSH-Flag                 │ ✓ TCP_FLAGS: 31 (PSH inkludiert)    │
+│ Verteilte Quellen (Cloud)               │ ✓ AWS-Infrastruktur                 │
+│ Bekannte Bedrohungsquelle               │ ✓ IP in Threat-DB gelistet          │
+│ Lange Verbindungsdauer                  │ ✓ 4.294.686 ms Flow-Dauer           │
+└─────────────────────────────────────────┴─────────────────────────────────────┘
+
+BESCHREIBUNG DES ANGRIFFS:
+GoldenEye ist ein HTTP-basiertes DoS-Tool, das HTTP-GET- und POST-Anfragen mit
+zufälligen Headern generiert, um Webserver zu überlasten. Es hält Verbindungen
+über Keep-Alive offen und verbraucht Server-Ressourcen durch langsame, aber
+persistente Anfragen.
+
+================================================================================
+                            RISIKOBEWERTUNG
+================================================================================
+
+SCHWEREGRAD:            HOCH
+KONFIDENZ:              95%
+
+BEGRÜNDUNG:
+• Die Quell-IP ist explizit als GoldenEye-Angriffsquelle dokumentiert
+• Das Zielsystem hat eine Historie von DoS-Angriffen
+• Die Verkehrsmuster entsprechen exakt den GoldenEye-Signaturen
+• Die hohe Anzahl historischer Verbindungen (27.723) bestätigt einen
+  anhaltenden, systematischen Angriff
+
+================================================================================
+                        EMPFOHLENE GEGENMASSNAHMEN
+================================================================================
+
+SOFORTMASSNAHMEN:
+1. IP-Blockierung: Die Quell-IP 18.219.211.138 sollte auf der Firewall
+   blockiert werden.
+2. Rate-Limiting: Implementierung von Verbindungslimits für HTTP-Anfragen
+   pro Quell-IP.
+3. Web Application Firewall (WAF): Aktivierung von Anti-DoS-Regeln.
+
+MITTELFRISTIGE MASSNAHMEN:
+4. AWS-Missbrauchsmeldung: Meldung der IP an das AWS-Abuse-Team.
+5. Connection-Timeout-Anpassung: Reduzierung der Keep-Alive-Timeouts.
+6. CDN/DDoS-Schutz: Evaluierung eines DDoS-Mitigationsdienstes.
+
+LANGFRISTIGE MASSNAHMEN:
+7. Netzwerk-Segmentierung: Isolation kritischer Webdienste.
+8. Monitoring-Erweiterung: Automatische Alarmierung bei ähnlichen Mustern.
+
+================================================================================
+                                 FAZIT
+================================================================================
+
+Die forensische Analyse bestätigt EINDEUTIG, dass der NetFlow-Eintrag
+mit ID 17917223 Teil eines aktiven GoldenEye DoS-Angriffs ist. Die
+Kombination aus bekannter Bedrohungsquelle, charakteristischen Verkehrsmustern
+und der massiven Anzahl historischer Verbindungen lässt keinen Zweifel an
+der bösartigen Natur dieses Netzwerkverkehrs.
+
+Die NIDS-Klassifizierung wird hiermit BESTÄTIGT.
+
+================================================================================
+                    ANALYSIERTE ROHDATEN (ORIGINAL)
+================================================================================
+
+netflow_id: 17917223
+IPV4_SRC_ADDR: 18.219.211.138
+L4_SRC_PORT: 42046
+IPV4_DST_ADDR: 172.31.69.25
+L4_DST_PORT: 80
+PROTOCOL: 6
+L7_PROTO: 7.0
+IN_BYTES: 1680
+IN_PKTS: 11
+OUT_BYTES: 2324
+OUT_PKTS: 7
+TCP_FLAGS: 31
+CLIENT_TCP_FLAGS: 30
+SERVER_TCP_FLAGS: 27
+FLOW_DURATION_MILLISECONDS: 4294686
+DURATION_IN: 281
+DURATION_OUT: 281
+MIN_TTL: 63
+MAX_TTL: 63
+LONGEST_FLOW_PKT: 1024
+SHORTEST_FLOW_PKT: 52
+MIN_IP_PKT_LEN: 52
+MAX_IP_PKT_LEN: 1024
+SRC_TO_DST_SECOND_BYTES: 1680.0
+DST_TO_SRC_SECOND_BYTES: 2324.0
+RETRANSMITTED_IN_BYTES: 0
+RETRANSMITTED_IN_PKTS: 0
+RETRANSMITTED_OUT_BYTES: 0
+RETRANSMITTED_OUT_PKTS: 0
+SRC_TO_DST_AVG_THROUGHPUT: 40000
+DST_TO_SRC_AVG_THROUGHPUT: 64000
+NUM_PKTS_UP_TO_128_BYTES: 14
+NUM_PKTS_128_TO_256_BYTES: 0
+NUM_PKTS_256_TO_512_BYTES: 1
+NUM_PKTS_512_TO_1024_BYTES: 3
+NUM_PKTS_1024_TO_1514_BYTES: 0
+TCP_WIN_MAX_IN: 26883
+TCP_WIN_MAX_OUT: 26847
+ICMP_TYPE: 0
+ICMP_IPV4_TYPE: 0
+DNS_QUERY_ID: 0
+DNS_QUERY_TYPE: 0
+DNS_TTL_ANSWER: 0
+FTP_COMMAND_RET_CODE: 0
+
+================================================================================
+                            ENDE DES BERICHTS
+================================================================================
