@@ -23,3 +23,4 @@ Die Dateien **`start.bat`** und **`stop.bat`** sind **nicht** Teil des Praxispro
 
 - Python‑Umgebung mit den Abhängigkeiten aus `requirements.txt`.
 - Eine DuckDB‑NetFlow‑Datenbankdatei und passende Konfiguration in `.env`.
+- Ngrok muss installiert sein (für Tunneling/öffentliche Bereitstellung der lokalen Dienste).
