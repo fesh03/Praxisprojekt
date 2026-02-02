@@ -1,6 +1,6 @@
 # Praxisprojekt – LLM-gestützte Anomaly Detection in NetFlow-Daten
 
-**Beschreibung:** v1.0-praxisprojekt
+**Version:** 1.0-praxisprojekt
 
 Dieses Repository enthält die Artefakte des Praxisprojekts **„LLM‑gestützte Anomaly Detection in Netzwerkdatenpaketen“**. Es umfasst einen MCP‑Server zur Analyse von NetFlow‑Daten, eine REST‑API auf Basis von DuckDB sowie begleitende JSON‑Referenzen und Analyseergebnisse.
 
